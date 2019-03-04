@@ -191,13 +191,13 @@ function addProduct(data) {
         {
             name: 'price',
             type: 'input',
-            message: 'Please enter the product price (no dollar sign):',
+            message: 'Please enter the product price:',
             validate: checkIfValidNum
         },
         {
             name: 'cost',
             type: 'input',
-            message: 'Please enter the product cost (no dollar sign):',
+            message: 'Please enter the product cost:',
             validate: checkIfValidNum
         },
         {
@@ -242,7 +242,7 @@ function addDepartment() {
         {
             name: 'overhead_costs',
             type: 'input',
-            message: 'Please enter the overhead costs for this department (no dollar sign):',
+            message: 'Please enter the overhead costs for this department:',
             validate: checkIfValidNum
         },
     ]).then((answer) => {
@@ -371,7 +371,8 @@ function selectItemFromList(theList) {
 };
 
 function viewItem(data) {
-    console.log(`\nProduct Name: ${data[0].product_name}`);
+    console.log(`\nItem ID: ${data[0].item_id}`);
+    console.log(`Product Name: ${data[0].product_name}`);
     console.log(`Description: ${data[0].product_desc}`);
     console.log(`Price: $${data[0].price}`);
     console.log(`Qty Available: ${data[0].stock_quantity}`);
@@ -405,7 +406,7 @@ function viewItem(data) {
             } else {
                 switch (answer.initial) {
                     case 'Add to Cart':
-                        addToCart();
+                        addToCart(data[0].item_id, data[0].stock_quantity);
                         break;
                     case 'View Cart/Checkout':
                         viewCart();
@@ -433,9 +434,30 @@ function readData(queryPart1, queryPart2, callback) {
     });
 };
 
-function addToCart() { //TODO: needs fixin.
-    console.log('add to that cart!');
-    initialInquiry();
+function addToCart(itemID, currentQty) { //TODO: needs fixin.
+    inquirer.prompt([
+        {
+            name: 'howMany',
+            type: 'input',
+            message: 'How many would you like?',
+            default: 1,
+            validate: checkIfValidIntOver0
+        }
+    ]).then((answer) => {
+        let newQty = currentQty - answer.howMany;
+        connection.query('update products set ? where ?',
+            [{
+                stock_quantity: newQty
+            },
+            {
+                item_id: itemID
+            }],
+            function (err, res) {
+                if (err) { throw err };
+            });
+        console.log(`\n${answer.howMany} added to cart.`);
+        browseProducts();
+    });
 };
 
 function viewCart() { //TODO: needs fixin.
@@ -492,10 +514,17 @@ function adjustInventory(data) {
 };
 
 function checkIfValidNum(answer) {
+    console.log('This must be a number only, without a dollar sign.');
     return (answer !== '' && !Number.isNaN(parseFloat(answer)));
 };
 
+function checkIfValidIntOver0(answer) {
+    console.log('This must be a number greater than zero.');
+    return (answer !== '' && !Number.isNaN(parseInt(answer)) && answer > 0);
+};
+
 function checkIfValidText(answer) {
+    console.log('This must not be left blank.');
     return (answer !== '');
 };
 
