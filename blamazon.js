@@ -48,6 +48,8 @@ function initialInquiry() {
                 process.exit();
             });
         } else {
+            let queryPart1 = '';
+            let queryPart2 = {};
             switch (answer.initial) {
                 case 'Browse Inventory':
                     browseProducts();
@@ -65,8 +67,8 @@ function initialInquiry() {
                     createAccount();
                     break;
                 case 'View Account':
-                    let queryPart1 = `SELECT * FROM accounts WHERE ?`;
-                    let queryPart2 = { account_id: loginID };
+                    queryPart1 = `select * from accounts where ?`;
+                    queryPart2 = { account_id: loginID };
                     readData(queryPart1, queryPart2, viewAccount);
                     break;
                 case 'Logout':
@@ -84,13 +86,14 @@ function initialInquiry() {
                     browseProducts(); // first we need to see the items to pick one
                     break;
                 case 'Add New Product':
-                    readData(`SELECT department_name FROM departments`, {}, addProduct)
+                    readData(`select department_name from departments`, {}, addProduct)
                     break;
                 case 'Add New Department':
                     addDepartment();
                     break;
                 case 'View Sales by Department':
-                    viewSales();
+                    queryPart1 = `select * from products where sold >0 order by department_name asc`;
+                    readData(queryPart1, {}, viewSales);
                     break;
                 case 'View Site as User':
                     console.log('\nNow viewing site with user privileges...\n');
@@ -118,18 +121,24 @@ function doLogin() {
             name: 'user_name',
             type: 'input',
             message: 'Please enter your user name:',
+            validate: checkIfValidText
         },
         {
             name: 'user_password',
             type: 'password',
             mask: '*',
             message: 'Please enter your password:',
+            validate: checkIfValidText
         },
     ]).then((answer) => {
         connection.query('select account_id, user_name, user_password, first_name, last_name, account_type from accounts where ?', { user_name: answer.user_name }, function (err, data) {
             if (err) { throw err };
-            if (answer.user_password !== data[0].user_password) {
-                console.log('\n\nThe user name and password do not match.');
+            if (data == '' || answer.user_password !== data[0].user_password) {
+                if (data == '') {
+                    console.log('\n\nThat user name does not exist.');
+                } else {
+                    console.log('\n\nThe user name and password do not match.');
+                };
                 inquirer.prompt([
                     {
                         name: 'next_step',
@@ -171,27 +180,38 @@ function addProduct(data) {
             name: 'product_name',
             type: 'input',
             message: 'Please enter the product name:',
+            validate: checkIfValidText
+        },
+        {
+            name: 'product_desc',
+            type: 'input',
+            message: 'Please enter the product description:',
+            validate: checkIfValidText
         },
         {
             name: 'price',
             type: 'input',
-            message: 'Please enter the product price:',
+            message: 'Please enter the product price (no dollar sign):',
+            validate: checkIfValidNum
         },
         {
             name: 'cost',
             type: 'input',
-            message: 'Please enter the product cost:',
+            message: 'Please enter the product cost (no dollar sign):',
+            validate: checkIfValidNum
         },
         {
             name: 'stock_quantity',
             type: 'input',
             message: 'Please enter quantity on-hand:',
+            validate: checkIfValidNum
         }
     ]).then((answer) => {
         connection.query('insert into products set ?',
             {
                 department_name: answer.department_name,
                 product_name: answer.product_name,
+                product_desc: answer.product_desc,
                 price: answer.price,
                 cost: answer.cost,
                 stock_quantity: answer.stock_quantity,
@@ -201,9 +221,10 @@ function addProduct(data) {
                 console.log(`\n\nThe product has been created:`);
                 console.log(`\nDepartment: ${answer.department_name}`);
                 console.log(`Product: ${answer.product_name}`);
+                console.log(`Description: ${answer.product_desc}`);
                 console.log(`Price: $${answer.price}`);
                 console.log(`Cost: $${answer.cost}`);
-                console.log(`Quantity on Hand: ${answer.stock_quantity}\n`);
+                console.log(`Qty on Hand: ${answer.stock_quantity}\n`);
                 initialInquiry();
             });
     });
@@ -216,11 +237,13 @@ function addDepartment() {
             name: 'department_name',
             type: 'input',
             message: 'Please enter the department name:',
+            validate: checkIfValidText
         },
         {
             name: 'overhead_costs',
             type: 'input',
-            message: 'Please enter the overhead costs for this department:',
+            message: 'Please enter the overhead costs for this department (no dollar sign):',
+            validate: checkIfValidNum
         },
     ]).then((answer) => {
         connection.query('insert into departments set ?',
@@ -245,21 +268,31 @@ function createAccount() {
             name: 'user_name',
             type: 'input',
             message: 'Please enter the user name you would like to use:',
+            validate: checkIfValidText
         },
         {
             name: 'user_password',
             type: 'input',
             message: 'Please enter password:',
+            validate: checkIfValidText
         },
         {
             name: 'first_name',
             type: 'input',
             message: 'Please enter first name:',
+            validate: checkIfValidText
         },
         {
             name: 'last_name',
             type: 'input',
             message: 'Please enter last name:',
+            validate: checkIfValidText
+        },
+        {
+            name: 'email_address',
+            type: 'input',
+            message: 'Please enter email address:',
+            validate: checkIfValidText
         }
     ]
     if (loggedInAs === 'administrator') {
@@ -279,6 +312,7 @@ function createAccount() {
                 user_password: answer.user_password,
                 first_name: answer.first_name,
                 last_name: answer.last_name,
+                last_name: answer.email_address,
                 account_type: accountType
             },
             function (err, res) {
@@ -286,8 +320,8 @@ function createAccount() {
                 console.log(`\n\nYour account has been created:`);
                 console.log(`\nUser Name: ${answer.user_name}`);
                 console.log(`User Password: ${answer.user_password}`);
-                console.log(`User Password: ${answer.first_name}`);
-                console.log(`User Password: ${answer.last_name}`);
+                console.log(`Name: ${answer.first_name} ${answer.last_name}`);
+                console.log(`Email: ${answer.email_address}`);
                 if (loggedInAs === 'administrator') {
                     console.log(`Account Type: ${accountType}`);
                 };
@@ -297,82 +331,96 @@ function createAccount() {
 };
 
 function browseProducts(option) {
-    let theQuery = 'select department_name, product_name from products';
+    let theQuery = 'select department_name, product_name, stock_quantity from products';
     if (option === 'low inventory') {
-        theQuery = 'select department_name, product_name, stock_quantity from products WHERE stock_quantity<=10';
+        theQuery = 'select department_name, product_name, stock_quantity from products where stock_quantity<=10';
     };
     connection.query(theQuery, function (err, data) {
         if (err) { throw err };
         let theProducts = [];
         if (loggedInAs === 'manager') {
             data.forEach(element => {
-                theProducts.push(`${element.department_name}: ${element.product_name} Quantity on hand: ${element.stock_quantity}`);
+                theProducts.push(`${element.department_name}:\t${element.product_name}\tQty on hand: ${element.stock_quantity}`);
             });
         } else {
             data.forEach(element => {
-                theProducts.push(element.department_name + ': ' + element.product_name);
+                theProducts.push(element.department_name + ':\t' + element.product_name);
             });
         };
         theProducts.push('Back to Main Menu');
         console.log('\n');
-        inquirer.prompt([
-            {
-                name: 'select',
-                type: 'list',
-                message: 'Please select an item to view:',
-                choices: theProducts
-            }
-        ]).then((answer) => {
-            if (answer.select === 'Back to Main Menu') {
-                initialInquiry();
-            } else {
-                let theItemToView = answer.select.split(': ')[1];
-                readData(`SELECT * FROM products WHERE ?`, { product_name: theItemToView }, viewItem);
-            };
-        });
+        selectItemFromList(theProducts);
     });
 };
 
-function viewItem(theItemData) {
-    console.log(`\nProduct Name: ${theItemData[0].product_name}`);
-    console.log(`Product Price: ${theItemData[0].price}`);
-    console.log(`Quantity Available: ${theItemData[0].stock_quantity}\n`);
-    let theChoices = [];
-    switch (loggedInAs) {
-        case 'guest' || 'user':
-            theChoices = ['Add to Cart', 'View Cart/Checkout', 'Back to Browse Inventory'];
-            break;
-        case 'manager':
-            theChoices = ['Adjust Inventory Quantity', 'Back to Browse Inventory'];
-            break;
-        default:
-        // code block
-    }
-    inquirer.prompt([{
-        name: 'initial',
-        type: 'list',
-        message: 'What would you like to do?',
-        choices: theChoices
-    }]).then((answer) => {
-        if (answer.initial === 'Back to Browse Inventory') {
-            browseProducts();
+function selectItemFromList(theList) {
+    inquirer.prompt([
+        {
+            name: 'select',
+            type: 'list',
+            message: 'Please select an item to view:',
+            choices: theList
+        }
+    ]).then((answer) => {
+        if (answer.select === 'Back to Main Menu') {
+            initialInquiry();
         } else {
-            switch (answer.initial) {
-                case 'Add to Cart':
-                    addToCart();
-                    break;
-                case 'View Cart/Checkout':
-                    viewCart();
-                    break;
-                case 'Adjust Inventory Quantity':
-                    let theProductID = theItemData[0].item_id;
-                    readData(`SELECT * FROM products WHERE ?`, { item_id: theProductID }, adjustInventory);
-                    break;
-                default:
-                // code block
-            }
+            let theItemToView = answer.select.split('\t')[1];
+            readData(`select * from products where ?`, { product_name: theItemToView }, viewItem);
         };
     });
+};
+
+function viewItem(data) {
+    console.log(`\nProduct Name: ${data[0].product_name}`);
+    console.log(`Description: ${data[0].product_desc}`);
+    console.log(`Price: $${data[0].price}`);
+    console.log(`Qty Available: ${data[0].stock_quantity}`);
+    if (loggedInAs === 'administrator') {
+        console.log(`Qty Sold: ${data[0].sold}\n`);
+        initialInquiry();
+    } else {
+        console.log('\n');
+        let theChoices = [];
+        switch (loggedInAs) {
+            case 'guest':
+                theChoices = ['Add to Cart', 'View Cart/Checkout', 'Back to Browse Inventory'];
+                break;
+            case 'user':
+                theChoices = ['Add to Cart', 'View Cart/Checkout', 'Back to Browse Inventory'];
+                break;
+            case 'manager':
+                theChoices = ['Adjust Inventory Quantity', 'Back to Browse Inventory'];
+                break;
+            default:
+            // code block
+        }
+        inquirer.prompt([{
+            name: 'initial',
+            type: 'list',
+            message: 'What would you like to do?',
+            choices: theChoices
+        }]).then((answer) => {
+            if (answer.initial === 'Back to Browse Inventory') {
+                browseProducts();
+            } else {
+                switch (answer.initial) {
+                    case 'Add to Cart':
+                        addToCart();
+                        break;
+                    case 'View Cart/Checkout':
+                        viewCart();
+                        break;
+                    case 'Adjust Inventory Quantity':
+                        let theProductID = data[0].item_id;
+                        readData(`select * from products where ?`, { item_id: theProductID }, adjustInventory);
+                        break;
+                    default:
+                    // code block
+                }
+            };
+        });
+    };
 };
 
 function readData(queryPart1, queryPart2, callback) {
@@ -399,22 +447,34 @@ function viewCart() { //TODO: needs fixin.
 function viewAccount(data) {
     console.log(`\n\nUser Name: ${data[0].user_name}`);
     console.log(`Name: ${data[0].first_name} ${data[0].last_name}`);
+    console.log(`Email: ${data[0].email_address}`);
     console.log(`Account Type: ${data[0].account_type}\n`);
     initialInquiry();
 };
 
-function viewSales() { //TODO: needs fixin.
-    console.log('view those sales!');
-    initialInquiry();
+function viewSales(data) {
+    if (data.length < 1) {
+        console.log('No sales have been recorded yet.');
+        initialInquiry();
+    } else {
+        let theProducts = [];
+        data.forEach(element => {
+            theProducts.push(`${element.department_name}:\t${element.product_name}:\tQty Sold: ${element.sold}`);
+        });
+        theProducts.push('Back to Main Menu');
+        console.log('\n');
+        selectItemFromList(theProducts);
+    };
 };
 
-function adjustInventory(theItemData) {
+function adjustInventory(data) {
     console.log('\n');
     inquirer.prompt([
         {
             name: 'newQuantity',
             type: 'input',
             message: 'Please enter the new quantity:',
+            validate: checkIfValidNum
         }
     ]).then((answer) => {
         connection.query('update products set ? where ?',
@@ -422,13 +482,22 @@ function adjustInventory(theItemData) {
                 stock_quantity: answer.newQuantity
             },
             {
-                item_id: theItemData[0].item_id
+                item_id: data[0].item_id
             }],
             function (err, res) {
                 if (err) { throw err };
-                theItemData[0].stock_quantity = answer.newQuantity;
+                data[0].stock_quantity = answer.newQuantity;
                 console.log(`\nThe quantity has been adjusted:`);
-                viewItem(theItemData);
+                viewItem(data);
             });
     });
 };
+
+function checkIfValidNum(answer) {
+    return (answer !== '' && !Number.isNaN(parseFloat(answer)));
+};
+
+function checkIfValidText(answer) {
+    return (answer !== '');
+};
+

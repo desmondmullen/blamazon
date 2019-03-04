@@ -1,7 +1,7 @@
 DROP DATABASE IF EXISTS blamazonDB;
 CREATE DATABASE blamazonDB;
 
-use blamazonDB;
+USE blamazonDB;
 
 CREATE TABLE accounts
 (
@@ -14,6 +14,8 @@ user_password varchar
 first_name varchar
       (50) not null,
 last_name varchar
+      (50) not null,
+      email_address varchar
       (50) not null,
 account_type varchar
       (15) not null default 'user',
@@ -52,17 +54,20 @@ primary key
                   (
                         item_id integer not null
                         auto_increment,
-  product_name varchar
+            department_name varchar
                         (100) not null,
-  department_name varchar
-                        (100) not null,
-  price decimal
+            product_name varchar
+                        (100) not null,                      
+                        product_desc varchar
+                        (150) not null,
+      price decimal
                         (10, 2) not null,
   stock_quantity int not null,
   product_sales decimal
                         (10, 2) not null default 0,
   cost decimal
                         (10, 2) not null,
+  sold int not null default 0,
   primary key
                         (item_id)
 );
