@@ -337,7 +337,7 @@ function browseProducts(option) {
     };
     connection.query(theQuery, function (err, data) {
         if (err) { throw err };
-        let theProducts = [];
+        let theProducts = ['Back to Main Menu'];
         if (loggedInAs === 'manager') {
             data.forEach(element => {
                 theProducts.push(`${element.department_name}:\t${element.product_name}\tQty on hand: ${element.stock_quantity}`);
@@ -347,7 +347,6 @@ function browseProducts(option) {
                 theProducts.push(element.department_name + ':\t' + element.product_name);
             });
         };
-        theProducts.push('Back to Main Menu');
         console.log('\n');
         selectItemFromList(theProducts);
     });
@@ -457,11 +456,10 @@ function viewSales(data) {
         console.log('No sales have been recorded yet.');
         initialInquiry();
     } else {
-        let theProducts = [];
+        let theProducts = ['Back to Main Menu'];
         data.forEach(element => {
             theProducts.push(`${element.department_name}:\t${element.product_name}:\tQty Sold: ${element.sold}`);
         });
-        theProducts.push('Back to Main Menu');
         console.log('\n');
         selectItemFromList(theProducts);
     };
