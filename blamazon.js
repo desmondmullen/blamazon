@@ -1,7 +1,7 @@
 const mysql = require('mysql');
 const inquirer = require('inquirer');
 const chalk = require('chalk');
-var loginID = 0
+var loginID = 1; // guest user
 var loggedInAs = 'guest';
 
 const connection = mysql.createConnection({
@@ -21,16 +21,33 @@ function initialInquiry() {
     let theChoices = [];
     switch (loggedInAs) {
         case 'guest':
-            theChoices = ['Browse Inventory', 'Login', 'Create Account', 'View Cart/Checkout', 'Exit'];
+            theChoices = ['Exit', 'Browse Inventory', 'Login', 'Create Account', 'View Cart/Checkout'];
             break;
         case 'user':
-            theChoices = ['Browse Inventory', 'View Account', 'Logout', 'View Cart/Checkout', 'Exit'];
+            theChoices = ['Exit', 'Browse Inventory', 'View Account', 'Logout', 'View Cart/Checkout'];
             break;
         case 'manager':
-            theChoices = ['View Products for Sale', 'View Low Inventory', 'Adjust Inventory Quantity', 'Add New Product', 'View Site as User', 'Exit'];
+            theChoices = ['Exit', 'View Products for Sale', 'View Low Inventory', 'Adjust Inventory Quantity', 'Add New Product', 'View Site as User'];
             break;
         case 'administrator':
-            theChoices = ['View Sales by Department', 'Add New Department', 'Add New User', 'View Site as Manager', 'View Site as User', 'Exit'];
+            theChoices = ['Exit', 'View Sales by Department', 'Add New Department', 'Add New User', 'View Site as Manager', 'View Site as User'];
+            break;
+        default:
+        // code block
+    };
+    let theDefault = '';
+    switch (loggedInAs) {
+        case 'guest':
+            theDefault = 'Browse Inventory';
+            break;
+        case 'user':
+            theDefault = 'Browse Inventory';
+            break;
+        case 'manager':
+            theDefault = 'View Products for Sale';
+            break;
+        case 'administrator':
+            theDefault = 'View Sales by Department';
             break;
         default:
         // code block
@@ -39,14 +56,11 @@ function initialInquiry() {
         name: 'initial',
         type: 'list',
         message: 'What would you like to do?',
-        choices: theChoices
+        choices: theChoices,
+        default: theDefault
     }]).then((answer) => {
         if (answer.initial === 'Exit') {
-            connection.end(function (err) {
-                if (err) { throw err };
-                console.log('\n\n');
-                process.exit();
-            });
+            cleanUpAndExit();
         } else {
             let queryPart1 = '';
             let queryPart2 = {};
@@ -77,7 +91,9 @@ function initialInquiry() {
                     initialInquiry();
                     break;
                 case 'View Cart/Checkout':
-                    viewCart();
+                    queryPart1 = `select user_cart from accounts where ?`;
+                    queryPart2 = { account_id: loginID };
+                    readData(queryPart1, queryPart2, viewCart);
                     break;
                 case 'View Low Inventory':
                     browseProducts('low inventory');
@@ -113,6 +129,32 @@ function initialInquiry() {
 };
 
 initialInquiry();
+
+function cleanUpAndExit() {
+    if (loginID === 1) { // guest user
+        connection.query('update accounts set ? where ?',
+            [{
+                user_cart: ''
+            },
+            {
+                account_id: 1
+            }],
+            function (err, res) {
+                if (err) { throw err };
+                doExit();
+            });
+    } else {
+        doExit();
+    };
+};
+
+function doExit() {
+    connection.end(function (err) {
+        if (err) { throw err };
+        console.log('\n\n');
+        process.exit();
+    });
+};
 
 function doLogin() {
     console.log('\n');
@@ -409,7 +451,9 @@ function viewItem(data) {
                         addToCart(data[0].item_id, data[0].stock_quantity);
                         break;
                     case 'View Cart/Checkout':
-                        viewCart();
+                        queryPart1 = `select user_cart from accounts where ?`;
+                        queryPart2 = { account_id: loginID };
+                        readData(queryPart1, queryPart2, viewCart);
                         break;
                     case 'Adjust Inventory Quantity':
                         let theProductID = data[0].item_id;
@@ -423,18 +467,18 @@ function viewItem(data) {
     };
 };
 
-function readData(queryPart1, queryPart2, callback) {
+function readData(queryPart1, queryPart2, callback, variable1, variable2) {
     connection.query(queryPart1, queryPart2, function (err, data) {
         if (err) { throw err };
         if (callback != undefined) {
-            callback(data);
+            callback(data, variable1, variable2);
         } else {
             return data;
         };
     });
 };
 
-function addToCart(itemID, currentQty) { //TODO: needs fixin.
+function addToCart(itemID, currentQty) {
     inquirer.prompt([
         {
             name: 'howMany',
@@ -455,14 +499,45 @@ function addToCart(itemID, currentQty) { //TODO: needs fixin.
             function (err, res) {
                 if (err) { throw err };
             });
-        console.log(`\n${answer.howMany} added to cart.`);
+        queryPart1 = `select user_cart from accounts where ?`;
+        queryPart2 = { account_id: loginID };
+        readData(queryPart1, queryPart2, updateCartData, itemID, answer.howMany);
         browseProducts();
     });
 };
 
-function viewCart() { //TODO: needs fixin.
-    console.log('view that cart!');
-    initialInquiry();
+function updateCartData(data, itemID, howMany) {
+    let theCart = data[0].user_cart + itemID + ',' + howMany + '\t';
+    connection.query('update accounts set ? where ?',
+        [{
+            user_cart: theCart
+        },
+        {
+            account_id: loginID
+        }],
+        function (err, res) {
+            if (err) { throw err };
+        });
+    console.log(`\n${howMany} added to cart.`);
+};
+
+function viewCart(data) { //TODO: needs fixin.
+    let theCart = data[0].user_cart.split('\t');
+    let theIDs = [];
+    theCart.forEach(element => {
+        if (element != '') {
+            theIDs.push(element.split(',')[0]);
+        };
+    });
+    let queryPart1 = 'select product_name, price from products where item_id in (' + theIDs.join(',') + ')';
+    connection.query(queryPart1, {}, function (err, data) {
+        if (err) { throw err };
+        // let theProducts = ['Back to Main Menu'];
+        data.forEach(element => {
+            console.log(element.product_name + '\t' + element.price);
+        });
+        initialInquiry();
+    });
 };
 
 function viewAccount(data) {

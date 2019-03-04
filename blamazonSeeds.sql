@@ -3,12 +3,13 @@ USE blamazonDB;
 INSERT INTO accounts
     (user_name, user_password, first_name, last_name, email_address, account_type)
 VALUES
-    ('dsmullen', 'dsmullen', 'Desmond', 'Mullen', 'dsm@desmondmullen.com',
-        'administrator'),
-    ('pzm', 'pzm', 'Peter', 'Zvonimir', 'pzm@busylittlestudios.com', 'user'),
+    ('guest', '', '', '', '', ''),
     ('user', 'user', 'Angie', 'Spong', 'angie.spong@gmail.com', 'user'),
     ('manager', 'manager', 'Vivian', 'Mullen', 'vkm@busylittlestudios.com', 'manager'),
-    ('admin', 'admin', 'Liam', 'Daniel', 'ldm@busylittlestudios.com', 'administrator')
+    ('admin', 'admin', 'Liam', 'Daniel', 'ldm@busylittlestudios.com', 'administrator'),
+    ('dsmullen', 'dsmullen', 'Desmond', 'Mullen', 'dsm@desmondmullen.com',
+        'administrator'),
+    ('pzm', 'pzm', 'Peter', 'Zvonimir', 'pzm@busylittlestudios.com', 'user')
 ;
 
 INSERT INTO account_types
