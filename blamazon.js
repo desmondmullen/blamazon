@@ -12,10 +12,12 @@ const connection = mysql.createConnection({
     database: 'blamazonDB'
 });
 
-console.log('\n\nWelcome to Blamazon!');
+console.log('\n\n********************');
+console.log('Welcome to Blamazon!');
+console.log('********************');
 
 function initialInquiry() {
-    console.log('\n\n');
+    console.log('\n');
     let theChoices = [];
     switch (loggedInAs) {
         case 'guest':
@@ -289,7 +291,6 @@ function createAccount() {
                 if (loggedInAs === 'administrator') {
                     console.log(`Account Type: ${accountType}`);
                 };
-                console.log(`\n`);
                 initialInquiry();
             });
     });
@@ -431,28 +432,3 @@ function adjustInventory(theItemData) {
             });
     });
 };
-
-/*
-accounts
-    (user_name, user_password, first_name, last_name, account_type)
-VALUES
-    ('dsmullen', 'dsmullen', 'Desmond', 'Mullen', 'administrator')
-
-
-account_types
-    (account_type_name, account_type_description)
-VALUES
-    ('administrator', 'can create new users')
-
-
-departments
-    (department_name, overhead_costs)
-VALUES
-    ('Apparel', 200)
-
-
-products
-    (product_name, department_name, price, stock_quantity, cost)
-VALUES
-    ('Dress Shirt', 'Apparel', 19.95, 50, 7.65)
-*/
