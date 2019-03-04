@@ -524,17 +524,22 @@ function updateCartData(data, itemID, howMany) {
 function viewCart(data) { //TODO: needs fixin.
     let theCart = data[0].user_cart.split('\t');
     let theIDs = [];
+    let theQtys = [];
     theCart.forEach(element => {
         if (element != '') {
             theIDs.push(element.split(',')[0]);
+            theQtys.push(element.split(',')[1]);
         };
     });
     let queryPart1 = 'select product_name, price from products where item_id in (' + theIDs.join(',') + ')';
     connection.query(queryPart1, {}, function (err, data) {
         if (err) { throw err };
         // let theProducts = ['Back to Main Menu'];
+        let i = 0;
         data.forEach(element => {
-            console.log(element.product_name + '\t' + element.price);
+            console.log(element.product_name + '\t' + element.price + '\tQty:' + theQtys[i]
+            );
+            i++;
         });
         initialInquiry();
     });
