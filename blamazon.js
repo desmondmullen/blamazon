@@ -521,6 +521,7 @@ function updateCartData(data, itemID, howMany) {
                 let theElementID = element.split(',')[0];
                 let theElementQty = element.split(',')[1];
                 if (theElementID === itemID) {
+                    console.log('duplicate');
                     theDuplicateFlag = true;
                     let theNewQty = theElementQty + howMany;
                     theNewData.push(`${theElementID},${theNewQty}`);
