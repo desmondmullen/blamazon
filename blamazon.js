@@ -489,28 +489,53 @@ function addToCart(itemID, currentQty) {
         }
     ]).then((answer) => {
         let newQty = currentQty - answer.howMany;
-        connection.query('update products set ? where ?',
-            [{
-                stock_quantity: newQty
-            },
-            {
-                item_id: itemID
-            }],
-            function (err, res) {
-                if (err) { throw err };
-            });
-        queryPart1 = `select user_cart from accounts where ?`;
-        queryPart2 = { account_id: loginID };
-        readData(queryPart1, queryPart2, updateCartData, itemID, answer.howMany);
-        browseProducts();
+        if (newQty < 0) {
+            //then we're sold out!
+        } else {
+            connection.query('update products set ? where ?',
+                [{
+                    stock_quantity: newQty
+                },
+                {
+                    item_id: itemID
+                }],
+                function (err, res) {
+                    if (err) { throw err };
+                });
+            queryPart1 = `select user_cart from accounts where ?`;
+            queryPart2 = { account_id: loginID };
+            readData(queryPart1, queryPart2, updateCartData, itemID, answer.howMany);
+            browseProducts();
+        };
     });
 };
-
 function updateCartData(data, itemID, howMany) {
-    let theCart = data[0].user_cart + itemID + ',' + howMany + '\t';
+    let theDuplicateFlag = false;
+    let theData = data[0].user_cart.split('\t');
+    let theNewData = [];
+    if (data[0].user_cart.length < 1) {
+        theNewData.push(`${itemID},${howMany}`);
+    } else {
+        theData.forEach(element => {
+            if (element != '') {
+                let theElementID = element.split(',')[0];
+                let theElementQty = element.split(',')[1];
+                if (theElementID === itemID) {
+                    theDuplicateFlag = true;
+                    let theNewQty = theElementQty + howMany;
+                    theNewData.push(`${theElementID},${theNewQty}`);
+                } else {
+                    theNewData.push(`${theElementID},${howMany}`);
+                };
+            };
+        });
+        if (theDuplicateFlag === false) {
+            theNewData.push(`${itemID},${howMany}`);
+        };
+    };
     connection.query('update accounts set ? where ?',
         [{
-            user_cart: theCart
+            user_cart: theNewData.join('\t')
         },
         {
             account_id: loginID
@@ -536,11 +561,15 @@ function viewCart(data) { //TODO: needs fixin.
         if (err) { throw err };
         // let theProducts = ['Back to Main Menu'];
         let i = 0;
+        console.log('\n');
+        let theTotal = 0;
         data.forEach(element => {
-            console.log(element.product_name + '\t' + element.price + '\tQty:' + theQtys[i]
-            );
+            theSubtotal = element.price * theQtys[i]
+            theTotal += theSubtotal;
+            console.log(element.product_name + '\t$' + element.price + '\tQty: ' + theQtys[i] + '\tSubtotal: $' + theSubtotal);
             i++;
         });
+        console.log('Your total is $' + theTotal);
         initialInquiry();
     });
 };
