@@ -16,7 +16,8 @@ first_name varchar
 last_name varchar
     (50) not null,
 email_address varchar
-    (50) not null,
+    (50) not null
+    default '',
 account_type varchar
     (15) not null
     default 'user',

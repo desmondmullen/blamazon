@@ -13,12 +13,14 @@ const connection = mysql.createConnection({
     database: 'blamazonDB'
 });
 
-console.log('\n\n********************');
-console.log('Welcome to Blamazon!');
-console.log('********************');
+console.log('\n\n\n\n\n\n\n\n' + '  ' + chalk.bgCyan(strpad.center('', 55)));
+console.log('  ' + chalk.black.bgCyan(strpad.center('***************************', 55)));
+console.log('  ' + chalk.black.bold.bgCyan(strpad.center('Welcome to Blamazon!', 55)));
+console.log('  ' + chalk.black.bgCyan(strpad.center('***************************', 55)));
+console.log('  ' + chalk.bgCyan(strpad.center('', 55)));
 
 function initialInquiry() {
-    console.log('\n');
+    console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('MAIN MENU', 55)) + '\n');
     let theChoices = [];
     switch (loggedInAs) {
         case 'guest':
@@ -28,10 +30,10 @@ function initialInquiry() {
             theChoices = ['Exit', 'Browse Inventory', 'View Account', 'Logout', 'View Cart/Checkout'];
             break;
         case 'manager':
-            theChoices = ['Exit', 'View Products for Sale', 'View Low Inventory', 'Adjust Inventory Quantity', 'Add New Product', 'View Site as User'];
+            theChoices = ['Exit', 'View Products for Sale', 'View Low Inventory', 'Adjust Inventory Quantity', 'Add New Product', 'View Site as User', 'View Account', 'Logout'];
             break;
         case 'administrator':
-            theChoices = ['Exit', 'View Sales by Department', 'Add New Department', 'Add New User', 'View Site as Manager', 'View Site as User'];
+            theChoices = ['Exit', 'View Sales by Department', 'Add New Department', 'Add New User', 'View Site as Manager', 'View Site as User', 'View Account', 'Logout'];
             break;
         default:
         // code block
@@ -87,8 +89,10 @@ function initialInquiry() {
                     readData(queryPart1, queryPart2, viewAccount);
                     break;
                 case 'Logout':
+                    console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('LOGOUT', 55)) + '\n');
+                    console.log('  You are now logged out.');
                     loggedInAs = 'guest';
-                    loginID = 0;
+                    loginID = 1;
                     initialInquiry();
                     break;
                 case 'View Cart/Checkout':
@@ -113,12 +117,12 @@ function initialInquiry() {
                     readData(queryPart1, {}, viewSales);
                     break;
                 case 'View Site as User':
-                    console.log('\nNow viewing site with user privileges...\n');
+                    console.log('\n  Now viewing site with user privileges...\n');
                     loggedInAs = 'user';
                     initialInquiry();
                     break;
                 case 'View Site as Manager':
-                    console.log('\nNow viewing site with manager privileges...\n');
+                    console.log('\n  Now viewing site with manager privileges...\n');
                     loggedInAs = 'manager';
                     initialInquiry();
                     break;
@@ -135,7 +139,7 @@ function cleanUpAndExit() {
     if (loginID === 1) { // guest user
         connection.query('update accounts set ? where ?',
             [{
-                user_cart: ''
+                user_cart: null
             },
             {
                 account_id: 1
@@ -158,7 +162,7 @@ function doExit() {
 };
 
 function doLogin() {
-    console.log('\n');
+    console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('LOGIN', 55)) + '\n');
     inquirer.prompt([
         {
             name: 'user_name',
@@ -178,9 +182,9 @@ function doLogin() {
             if (err) { throw err };
             if (data == '' || answer.user_password !== data[0].user_password) {
                 if (data == '') {
-                    console.log('\n\nThat user name does not exist.');
+                    console.log('\n\n  That user name does not exist.');
                 } else {
-                    console.log('\n\nThe user name and password do not match.');
+                    console.log('\n\n  The user name and password do not match.');
                 };
                 inquirer.prompt([
                     {
@@ -199,7 +203,8 @@ function doLogin() {
             } else {
                 loginID = data[0].account_id;
                 loggedInAs = data[0].account_type;
-                console.log(`\n\nWelcome, ${data[0].first_name}. You are now logged in to your ${loggedInAs} account.`);
+                console.log(`\n  Welcome, ${data[0].first_name} ${data[0].last_name}. You are now logged in to your`);
+                console.log(`  ${loggedInAs} account.`);
                 initialInquiry();
             };
         });
@@ -207,7 +212,7 @@ function doLogin() {
 }
 
 function addProduct(data) {
-    console.log('\n');
+    console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('CREATE NEW PRODUCT', 55)) + '\n');
     let theDepartmentsArray = [];
     data.forEach(element => {
         theDepartmentsArray.push(element.department_name);
@@ -261,13 +266,12 @@ function addProduct(data) {
             },
             function (err, res) {
                 if (err) { throw err };
-                console.log(`\n\nThe product has been created:`);
-                console.log(`\nDepartment: ${answer.department_name}`);
-                console.log(`Product: ${answer.product_name}`);
-                console.log(`Description: ${answer.product_desc}`);
-                console.log(`Price: $${strpad.left(parseFloat(answer.price).toFixed(2), 7)}`);
-                console.log(`Cost:  $${strpad.left(parseFloat(answer.cost).toFixed(2), 7)}`);
-                console.log(`Qty on Hand: ${answer.stock_quantity}\n`);
+                console.log('\n\n  New product created in ' + answer.department_name + ':\n');
+                console.log('  ' + chalk.black.bold.bgWhiteBright(strpad.right(answer.product_name, 18) + strpad.left('Price: $' + parseFloat(answer.price).toFixed(2), 37)));
+                console.log('  ' + chalk.bgWhite(strpad.left('', 55)));
+                console.log('  ' + chalk.black.bgWhite(strpad.right('Description: ' + answer.product_desc, 55)));
+                console.log('  ' + chalk.bgWhite(strpad.left('', 55)));
+                console.log('  ' + chalk.black.bgWhiteBright(strpad.right('Cost: $' + parseFloat(answer.cost).toFixed(2), 25) + strpad.left('Qty Available: ' + answer.stock_quantity, 30)));
                 initialInquiry();
             });
     });
@@ -296,9 +300,9 @@ function addDepartment() {
             },
             function (err, res) {
                 if (err) { throw err };
-                console.log(`\n\nThe department has been created:`);
-                console.log(`\nDepartment: ${answer.department_name}`);
-                console.log(`Overhead Costs: $${answer.overhead_costs}\n`);
+                console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('DEPARTMENT HAS BEEN CREATED', 55)) + '\n');
+                console.log(`\n  Department: ${answer.department_name}`);
+                console.log(`  Overhead Costs: $${answer.overhead_costs}\n`);
                 initialInquiry();
             });
     });
@@ -355,26 +359,31 @@ function createAccount() {
                 user_password: answer.user_password,
                 first_name: answer.first_name,
                 last_name: answer.last_name,
-                last_name: answer.email_address,
+                email_address: answer.email_address,
                 account_type: accountType
             },
             function (err, res) {
                 if (err) { throw err };
-                console.log(`\n\nYour account has been created:`);
-                console.log(`\nUser Name: ${answer.user_name}`);
-                console.log(`User Password: ${answer.user_password}`);
-                console.log(`Name: ${answer.first_name} ${answer.last_name}`);
-                console.log(`Email: ${answer.email_address}`);
-                if (loggedInAs === 'administrator') {
-                    console.log(`Account Type: ${accountType}`);
-                };
-                initialInquiry();
+                connection.query('select account_id from accounts where ?', { user_name: answer.user_name }, function (err, data) {
+                    if (err) { throw err };
+                    if (loggedInAs != 'administrator') { // if an administrator is creating an account
+                        loginID = data[0].account_id;    // we don't want to switch out of adminstrator
+                        loggedInAs = accountType;
+                    };
+                    console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('YOUR ACCOUNT HAS BEEN CREATED', 55)) + '\n');
+                    console.log(`  User Name:    ${answer.user_name}`);
+                    console.log(`  Password:     ${answer.user_password}`);
+                    console.log(`  Name:         ${answer.first_name} ${answer.last_name}`);
+                    console.log(`  Email:        ${answer.email_address}`);
+                    console.log(`  Account Type: ${accountType}`);
+                    initialInquiry();
+                });
             });
     });
 };
 
 function browseProducts(option) {
-    let theQuery = 'select department_name, product_name, stock_quantity from products';
+    let theQuery = 'select department_name, product_name, price, stock_quantity from products';
     if (option === 'low inventory') {
         theQuery = 'select department_name, product_name, stock_quantity from products where stock_quantity<=10';
     };
@@ -383,14 +392,18 @@ function browseProducts(option) {
         let theProducts = ['Back to Main Menu'];
         if (loggedInAs === 'manager') {
             data.forEach(element => {
-                theProducts.push(`${element.department_name}:\t${element.product_name}\tQty on hand: ${element.stock_quantity}`);
+                theProducts.push(strpad.right(element.department_name, 14) + '\t' + strpad.right(element.product_name, 18) + '\t' + ' Qty: ' + strpad.left(element.stock_quantity, 3));
             });
         } else {
             data.forEach(element => {
-                theProducts.push(element.department_name + ':\t' + element.product_name);
+                theProducts.push('  ' + strpad.right(element.department_name, 14) + '\t' + strpad.right(element.product_name, 18) + '\t' + strpad.left('$' + element.price, 8));
             });
         };
-        console.log('\n');
+        if (option === 'low inventory') {
+            console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('BROWSING INVENTORY WITH QTY ON HAND ≤ 10', 55)) + '\n');
+        } else {
+            console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('BROWSING INVENTORY', 55)) + '\n');
+        };
         selectItemFromList(theProducts);
     });
 };
@@ -415,17 +428,15 @@ function selectItemFromList(theList) {
 
 function viewItem(data) {
     console.log('\n');
-    // console.log('\n' + strpad.left('', 55, '-'));
-    console.log(chalk.black.bold.bgWhiteBright(strpad.right(data[0].product_name, 18) + strpad.left('Price: $' + data[0].price.toFixed(2), 37)));
-    console.log(chalk.bgWhite(strpad.left('', 55)));
-    console.log(chalk.black.bgWhite(strpad.right('Description: ' + data[0].product_desc, 55)));
-    console.log(chalk.bgWhite(strpad.left('', 55)));
-    console.log(chalk.black.bgWhiteBright(strpad.right('Item ID: ' + data[0].item_id, 12) + strpad.left('Qty Available: ' + data[0].stock_quantity, 43)));
+    console.log('  ' + chalk.black.bold.bgWhiteBright(strpad.right(data[0].product_name, 18) + strpad.left('Price: $' + data[0].price.toFixed(2), 37)));
+    console.log('  ' + chalk.bgWhite(strpad.left('', 55)));
+    console.log('  ' + chalk.black.bgWhite(strpad.right('Description: ' + data[0].product_desc, 55)));
+    console.log('  ' + chalk.bgWhite(strpad.left('', 55)));
+    console.log('  ' + chalk.black.bgWhiteBright(strpad.right('Item ID: ' + data[0].item_id, 12) + strpad.left('Qty Available: ' + data[0].stock_quantity, 43)));
     if (loggedInAs === 'administrator') {
-        console.log(`Qty Sold: ${data[0].sold}\n`);
+        console.log(`  Qty Sold: ${data[0].sold}\n`);
         initialInquiry();
     } else {
-        // console.log(strpad.left('', 55, '-'));
         console.log('\n');
         let theChoices = [];
         switch (loggedInAs) {
@@ -565,12 +576,13 @@ function updateCartData(data, itemID, howMany) {
         function (err, res) {
             if (err) { throw err };
         });
-    console.log(`\n${howMany} added to cart.`);
+    console.log(`\n  ${howMany} added to cart.`);
 };
 
 function viewCart(data) {
+    console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('YOUR SHOPPING CART', 55)));
     if (data == null || data[0].user_cart == null) {
-        console.log('\nYour cart is empty\n');
+        console.log('\n  Your cart is empty.\n');
         initialInquiry();
     } else {
         let theCart = data[0].user_cart.split('\t');
@@ -586,57 +598,83 @@ function viewCart(data) {
         connection.query(queryPart1, {}, function (err, data) {
             if (err) { throw err };
             let i = 0;
-            console.log('\n');
-            console.log(chalk.black.bold.bgWhiteBright(strpad.right('SHOPPING CART', 55)));
             let theTotal = 0;
             data.forEach(element => {
                 theSubtotal = element.price * theQtys[i]
                 theTotal += theSubtotal;
-                console.log(chalk.black.bgWhite(strpad.right(element.product_name, 20) + strpad.left('$' + element.price.toFixed(2), 7) + '  Qty: ' + strpad.left(theQtys[i], 2) + '  Subtotal: ' + strpad.left('$' + theSubtotal.toFixed(2), 7)));
+                console.log('  ' + chalk.black.bgWhite(strpad.right(element.product_name, 20) + strpad.left('$' + element.price.toFixed(2), 7) + '  Qty: ' + strpad.left(theQtys[i], 2) + '  Subtotal: ' + strpad.left('$' + theSubtotal.toFixed(2), 7)));
                 i++;
             });
-            console.log(chalk.black.bgWhite(strpad.left('-------', 55)));
-            // console.log(chalk.bgWhite(strpad.left('', 55)));
-            console.log(chalk.black.bold.bgWhiteBright(strpad.left('Your total is $' + theTotal.toFixed(2), 55)));
-            console.log(chalk.black.bold.bgWhiteBright(strpad.left('=======', 55)));
-            initialInquiry();
+            console.log('  ' + chalk.black.bgWhite(strpad.left('-------', 55)));
+            console.log('  ' + chalk.black.bold.bgWhiteBright(strpad.left('Your total is $' + theTotal.toFixed(2), 55)));
+            console.log('  ' + chalk.black.bold.bgWhiteBright(strpad.left('=======', 55)));
+            console.log('\n');
+            inquirer.prompt([{
+                name: 'checkoutNow',
+                type: 'list',
+                message: 'What would you like to do?',
+                choices: ['Checkout', 'Continue Shopping']
+            }]).then((answer) => {
+                if (answer.checkoutNow === 'Checkout') {
+                    inquirer.prompt([{
+                        name: 'checkout',
+                        type: 'list',
+                        message: 'Select Submit Order to complete your purchase.',
+                        choices: ['Submit Order', 'Continue Shopping']
+                    }]).then((answer) => {
+                        if (answer.checkout === 'Submit Order') {
+                            console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('THANK YOU!', 55)) + '\n');
+                            console.log('  Thank you for your order!');
+                            console.log('\n  Your order is being processed. You will receive a');
+                            console.log('  confirmation email shortly.');
+                            initialInquiry();
+                        } else {
+                            browseProducts();
+                        };
+                    });
+                } else {
+                    browseProducts();
+                };
+            });
         });
     };
 };
 
 function viewAccount(data) {
-    console.log(`\n\nUser Name: ${data[0].user_name}`);
-    console.log(`Name: ${data[0].first_name} ${data[0].last_name}`);
-    console.log(`Email: ${data[0].email_address}`);
-    console.log(`Account Type: ${data[0].account_type}\n`);
+    console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('YOUR ACCOUNT', 55)) + '\n');
+    console.log(`  User Name:    ${data[0].user_name}`);
+    console.log(`  Password:     ********`);
+    console.log(`  Name:         ${data[0].first_name} ${data[0].last_name}`);
+    console.log(`  Email:        ${data[0].email_address}`);
+    console.log(`  Account Type: ${data[0].account_type}`);
     initialInquiry();
 };
 
 function viewSales(data) {
+    console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('SALES BY DEPARTMENT', 55)) + '\n');
     if (data.length < 1) {
-        console.log('No sales have been recorded yet.');
+        console.log('\n  No sales have been recorded yet.');
     } else {
-        console.log('\n');
         let theLastDeptName = '';
         let theDeptTotal = 0;
         data.forEach(element => {
             if (theLastDeptName === '') {
-                console.log(strpad.left('', 75, '-'));
-                console.log(chalk.whiteBright(`Department: ${element.department_name}`));
+                console.log('  ' + strpad.left('', 75, '-'));
+                console.log('  ' + chalk.whiteBright(`Department: ${element.department_name}`));
             };
             if (theLastDeptName != element.department_name && theLastDeptName != '') {
-                console.log(chalk.whiteBright(`\t\t\t\t\t${strpad.right(theLastDeptName, 14)} total sales: ${strpad.left('$' + theDeptTotal.toFixed(2), 7)}`));
-                console.log(strpad.left('', 75, '-'));
+                console.log('  ' + chalk.whiteBright(`\t\t\t\t\t  ${strpad.right(theLastDeptName, 14)} total sales: ${strpad.left('$' + theDeptTotal.toFixed(2), 7)}`));
+                console.log('  ' + strpad.left('', 75, '-'));
                 theDeptTotal = 0;
-                console.log(chalk.whiteBright(`Department: ${element.department_name}`));
+                console.log('  ' + chalk.whiteBright(`Department: ${element.department_name}`));
             };
             let theProfit = (element.price - element.cost) * element.sold;
             theDeptTotal += theProfit;
-            console.log(`${strpad.right(element.product_name, 18)}  Sold: ${element.sold}  Cost: ${strpad.left('$' + element.cost.toFixed(2), 7)}  Price: ${strpad.left('$' + element.price.toFixed(2), 7)}  Profit: ${strpad.left('$' + theProfit.toFixed(2), 7)}`);
+            console.log(`  ${strpad.right(element.product_name, 18)}  Sold: ${element.sold}  Cost: ${strpad.left('$' + element.cost.toFixed(2), 7)}  Price: ${strpad.left('$' + element.price.toFixed(2), 7)}  Profit: ${strpad.left('$' + theProfit.toFixed(2), 7)}`);
             theLastDeptName = element.department_name;
         });
-        console.log(chalk.whiteBright(`\t\t\t\t\t${strpad.right(theLastDeptName, 14)} total sales: ${strpad.left('$' + theDeptTotal.toFixed(2), 7)}`));
-        console.log(strpad.left('', 75, '-'));
+        console.log('  ' + chalk.whiteBright(`\t\t\t\t\t  ${strpad.right(theLastDeptName, 14)} total sales: ${strpad.left('$' + theDeptTotal.toFixed(2), 7)}`));
+        console.log('  ' + strpad.left('', 75, '-'));
     };
     initialInquiry();
 };
@@ -661,7 +699,7 @@ function adjustInventory(data) {
             function (err, res) {
                 if (err) { throw err };
                 data[0].stock_quantity = answer.newQuantity;
-                console.log(`\nThe quantity has been adjusted:`);
+                console.log(`\n  The quantity has been adjusted:`);
                 viewItem(data);
             });
     });
@@ -669,21 +707,21 @@ function adjustInventory(data) {
 
 function checkIfValidNum(answer) {
     if (Number.isNaN(parseFloat(answer))) {
-        console.log('\nThis must be a number only, without a dollar sign.');
+        console.log('\n  This must be a number only, without a dollar sign.');
     };
     return (answer !== '' && !Number.isNaN(parseFloat(answer)));
 };
 
 function checkIfValidIntOver0(answer) {
     if (Number.isNaN(parseInt(answer)) || answer > 0) {
-        console.log('\nThis must be a number greater than zero.');
+        console.log('\n  This must be a number greater than zero.');
     };
     return (answer !== '' && !Number.isNaN(parseInt(answer)) && answer > 0);
 };
 
 function checkIfValidText(answer) {
     if (answer == '') {
-        console.log('\nThis must not be left blank.');
+        console.log('\n  This must not be left blank.');
     };
     return (answer !== '');
 };
