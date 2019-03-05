@@ -528,11 +528,12 @@ function addToCart(itemID, currentQty) {
 };
 function updateCartData(data, itemID, howMany) {
     let theDuplicateFlag = false;
-    let theData = data[0].user_cart.split('\t');
+    let theData = [];
     let theNewData = [];
-    if (data[0].user_cart.length < 1) {
+    if (data[0].user_cart === null) {
         theNewData.push(`${itemID},${howMany}`);
     } else {
+        theData = data[0].user_cart.split('\t');
         theData.forEach(element => {
             if (element != '') {
                 let theElementID = element.split(',')[0];
