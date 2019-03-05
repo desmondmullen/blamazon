@@ -24,10 +24,10 @@ function initialInquiry() {
     let theChoices = [];
     switch (loggedInAs) {
         case 'guest':
-            theChoices = ['Exit', 'Browse Inventory', 'Login', 'Create Account', 'View Cart/Checkout'];
+            theChoices = ['Exit', 'Browse Inventory', 'View Cart/Checkout', 'Create Account', 'Login'];
             break;
         case 'user':
-            theChoices = ['Exit', 'Browse Inventory', 'View Account', 'Logout', 'View Cart/Checkout'];
+            theChoices = ['Exit', 'Browse Inventory', 'View Cart/Checkout', 'View Account', 'Logout'];
             break;
         case 'manager':
             theChoices = ['Exit', 'View Products for Sale', 'View Low Inventory', 'Adjust Inventory Quantity', 'Add New Product', 'View Site as User', 'View Account', 'Logout'];
@@ -392,7 +392,7 @@ function browseProducts(option) {
         let theProducts = ['Back to Main Menu'];
         if (loggedInAs === 'manager') {
             data.forEach(element => {
-                theProducts.push(strpad.right(element.department_name, 14) + '\t' + strpad.right(element.product_name, 18) + '\t' + ' Qty: ' + strpad.left(element.stock_quantity, 3));
+                theProducts.push('  ' + strpad.right(element.department_name, 14) + '\t' + strpad.right(element.product_name, 18) + '     Qty: ' + strpad.left(element.stock_quantity, 3));
             });
         } else {
             data.forEach(element => {
@@ -678,7 +678,7 @@ function viewSales(data) {
                 console.log('  ' + chalk.whiteBright(`Department: ${element.department_name}`));
             };
             if (theLastDeptName != element.department_name && theLastDeptName != '') {
-                console.log('  ' + chalk.whiteBright(`\t\t\t\t\t${strpad.right(theLastDeptName, 14)} total sales: ${strpad.left('$' + theDeptTotal.toFixed(2), 9)}`));
+                console.log('  ' + chalk.whiteBright(`\t\t\t\t    ${strpad.right(theLastDeptName, 14)} Total Profit: ${strpad.left('$' + theDeptTotal.toFixed(2), 12)}`));
                 console.log('  ' + strpad.left('', 75, '-'));
                 theDeptTotal = 0;
                 console.log('  ' + chalk.whiteBright(`Department: ${element.department_name}`));
@@ -688,7 +688,7 @@ function viewSales(data) {
             console.log(`  ${strpad.right(element.product_name, 18)} Sold: ${strpad.left(element.sold, 3)} Cost: ${strpad.left('$' + element.cost.toFixed(2), 7)} Price: ${strpad.left('$' + element.price.toFixed(2), 7)} Profit: ${strpad.left('$' + theProfit.toFixed(2), 9)}`);
             theLastDeptName = element.department_name;
         });
-        console.log('  ' + chalk.whiteBright(`\t\t\t\t\t${strpad.right(theLastDeptName, 14)} total sales: ${strpad.left('$' + theDeptTotal.toFixed(2), 9)}`));
+        console.log('  ' + chalk.whiteBright(`\t\t\t\t    ${strpad.right(theLastDeptName, 14)} Total Profit: ${strpad.left('$' + theDeptTotal.toFixed(2), 12)}`));
         console.log('  ' + strpad.left('', 75, '-'));
     };
     initialInquiry();
