@@ -463,7 +463,7 @@ function viewItem(data) {
             } else {
                 switch (answer.initial) {
                     case 'Add to Cart':
-                        addToCart(data[0].item_id, data[0].stock_quantity);
+                        addToCart(data[0].item_id, data[0].stock_quantity, data[0].sold);
                         break;
                     case 'View Cart/Checkout':
                         queryPart1 = `select user_cart from accounts where ?`;
@@ -493,7 +493,7 @@ function readData(queryPart1, queryPart2, callback, variable1, variable2) {
     });
 };
 
-function addToCart(itemID, currentQty) {
+function addToCart(itemID, currentQty, currentSold) {
     if (currentQty < 1) {
         //out of stock
     } else {
@@ -506,7 +506,9 @@ function addToCart(itemID, currentQty) {
                 validate: checkIfValidIntOver0
             }
         ]).then((answer) => {
-            let newQty = currentQty - answer.howMany;
+            let howMany = parseInt(answer.howMany);
+            let newQty = parseInt(currentQty) - howMany;
+            let newSold = parseInt(currentSold) + howMany;
             if (newQty < 0) {
                 inquirer.prompt([
                     {
@@ -517,30 +519,40 @@ function addToCart(itemID, currentQty) {
                 ]).then((answer) => {
                     if (answer.howMany) {
                         newQty = currentQty;
+                        newSold = currentSold + currentQty;
+                        updateTheItem(queryPart1, queryPart2, itemID, newQty, newSold);
                     } else {
                         newQty = 0;
                     };
                     browseProducts();
                 });
+            } else {
+                queryPart1 = `select user_cart from accounts where ?`;
+                queryPart2 = { account_id: loginID };
+                updateTheItem(queryPart1, queryPart2, itemID, newQty, newSold, howMany);
             };
-
-            connection.query('update products set ? where ?',
-                [{
-                    stock_quantity: newQty
-                },
-                {
-                    item_id: itemID
-                }],
-                function (err, res) {
-                    if (err) { throw err };
-                });
-            queryPart1 = `select user_cart from accounts where ?`;
-            queryPart2 = { account_id: loginID };
-            readData(queryPart1, queryPart2, updateCartData, itemID, answer.howMany);
-            browseProducts();
         });
     };
 };
+
+function updateTheItem(queryPart1, queryPart2, itemID, newQty, newSold, howMany) {
+    connection.query('update products set ? where ?',
+        [{
+            stock_quantity: newQty,
+            sold: newSold
+        },
+        {
+            item_id: itemID
+        }],
+        function (err, res) {
+            if (err) { throw err };
+        });
+    queryPart1 = `select user_cart from accounts where ?`;
+    queryPart2 = { account_id: loginID };
+    readData(queryPart1, queryPart2, updateCartData, itemID, howMany);
+    browseProducts();
+};
+
 function updateCartData(data, itemID, howMany) {
     let theDuplicateFlag = false;
     let theData = [];
@@ -713,7 +725,7 @@ function checkIfValidNum(answer) {
 };
 
 function checkIfValidIntOver0(answer) {
-    if (Number.isNaN(parseInt(answer)) || answer > 0) {
+    if (Number.isNaN(parseInt(answer)) || !answer > 0) {
         console.log('\n  This must be a number greater than zero.');
     };
     return (answer !== '' && !Number.isNaN(parseInt(answer)) && answer > 0);

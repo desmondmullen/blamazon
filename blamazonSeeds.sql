@@ -8,6 +8,7 @@ VALUES
     ('manager', 'manager', 'Vivian', 'Mullen', 'vkm@busylittlestudios.com', 'manager'),
     ('administrator', 'administrator', 'Liam', 'Daniel', 'ldm@busylittlestudios.com', 'administrator'),
     ('admin', 'admin', 'Liam', 'Daniel', 'ldm@busylittlestudios.com', 'administrator'),
+    ('supervisor', 'supervisor', 'Desmond', 'Mullen', 'dsm@desmondmullen.com', 'administrator'),
     ('dsmullen', 'dsmullen', 'Desmond', 'Mullen', 'dsm@desmondmullen.com',
         'administrator')
 ;
@@ -15,8 +16,7 @@ VALUES
 INSERT INTO account_types
     (account_type_name, account_type_description)
 VALUES
-    ('administrator', 'can
-create new users'),
+    ('administrator', 'admininstrator/supervisor'),
     ('manager', 'can manage departments'),
     ('user', 'user/customer')
 ;
