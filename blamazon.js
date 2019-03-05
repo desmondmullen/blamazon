@@ -182,9 +182,9 @@ function doLogin() {
             if (err) { throw err };
             if (data == '' || answer.user_password !== data[0].user_password) {
                 if (data == '') {
-                    console.log('\n\n  That user name does not exist.');
+                    console.log(chalk.yellowBright('\n  That user name does not exist.\n'));
                 } else {
-                    console.log('\n\n  The user name and password do not match.');
+                    console.log(chalk.yellowBright('\n  The user name and password do not match.\n'));
                 };
                 inquirer.prompt([
                     {
