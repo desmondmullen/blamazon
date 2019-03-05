@@ -46,8 +46,6 @@ department_name varchar
     (100) not null,
 overhead_costs decimal
     (10, 2) not null,
-total_sales decimal
-    (10, 2) not null default 0,
 primary key
     (department_id)
 );

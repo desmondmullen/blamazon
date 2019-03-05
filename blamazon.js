@@ -264,8 +264,8 @@ function addProduct(data) {
                 console.log(`\nDepartment: ${answer.department_name}`);
                 console.log(`Product: ${answer.product_name}`);
                 console.log(`Description: ${answer.product_desc}`);
-                console.log(`Price: $${answer.price}`);
-                console.log(`Cost: $${answer.cost}`);
+                console.log(`Price: $${answer.price.toFixed(2)}`);
+                console.log(`Cost: $${answer.cost.toFixed(2)}`);
                 console.log(`Qty on Hand: ${answer.stock_quantity}\n`);
                 initialInquiry();
             });
@@ -416,7 +416,7 @@ function viewItem(data) {
     console.log(`\nItem ID: ${data[0].item_id}`);
     console.log(`Product Name: ${data[0].product_name}`);
     console.log(`Description: ${data[0].product_desc}`);
-    console.log(`Price: $${data[0].price}`);
+    console.log(`Price: $${data[0].price.toFixed(2)}`);
     console.log(`Qty Available: ${data[0].stock_quantity}`);
     if (loggedInAs === 'administrator') {
         console.log(`Qty Sold: ${data[0].sold}\n`);
@@ -479,19 +479,36 @@ function readData(queryPart1, queryPart2, callback, variable1, variable2) {
 };
 
 function addToCart(itemID, currentQty) {
-    inquirer.prompt([
-        {
-            name: 'howMany',
-            type: 'input',
-            message: 'How many would you like?',
-            default: 1,
-            validate: checkIfValidIntOver0
-        }
-    ]).then((answer) => {
-        let newQty = currentQty - answer.howMany;
-        if (newQty < 0) {
-            //then we're sold out!
-        } else {
+    if (currentQty < 1) {
+        //out of stock
+    } else {
+        inquirer.prompt([
+            {
+                name: 'howMany',
+                type: 'input',
+                message: 'How many would you like?',
+                default: 1,
+                validate: checkIfValidIntOver0
+            }
+        ]).then((answer) => {
+            let newQty = currentQty - answer.howMany;
+            if (newQty < 0) {
+                inquirer.prompt([
+                    {
+                        name: 'howMany',
+                        type: 'confirm',
+                        message: 'There is not enough stock to fill your order. Would you like the ' + currentQty + ' available?',
+                    }
+                ]).then((answer) => {
+                    if (answer.howMany) {
+                        newQty = currentQty;
+                    } else {
+                        newQty = 0;
+                    };
+                    browseProducts();
+                });
+            };
+
             connection.query('update products set ? where ?',
                 [{
                     stock_quantity: newQty
@@ -506,8 +523,8 @@ function addToCart(itemID, currentQty) {
             queryPart2 = { account_id: loginID };
             readData(queryPart1, queryPart2, updateCartData, itemID, answer.howMany);
             browseProducts();
-        };
-    });
+        });
+    };
 };
 function updateCartData(data, itemID, howMany) {
     let theDuplicateFlag = false;
@@ -520,10 +537,9 @@ function updateCartData(data, itemID, howMany) {
             if (element != '') {
                 let theElementID = element.split(',')[0];
                 let theElementQty = element.split(',')[1];
-                if (theElementID === itemID) {
-                    console.log('duplicate');
+                if (parseInt(theElementID) === parseInt(itemID)) {
                     theDuplicateFlag = true;
-                    let theNewQty = theElementQty + howMany;
+                    let theNewQty = parseInt(theElementQty) + parseInt(howMany);
                     theNewData.push(`${theElementID},${theNewQty}`);
                 } else {
                     theNewData.push(`${theElementID},${howMany}`);
@@ -547,32 +563,36 @@ function updateCartData(data, itemID, howMany) {
     console.log(`\n${howMany} added to cart.`);
 };
 
-function viewCart(data) { //TODO: needs fixin.
-    let theCart = data[0].user_cart.split('\t');
-    let theIDs = [];
-    let theQtys = [];
-    theCart.forEach(element => {
-        if (element != '') {
-            theIDs.push(element.split(',')[0]);
-            theQtys.push(element.split(',')[1]);
-        };
-    });
-    let queryPart1 = 'select product_name, price from products where item_id in (' + theIDs.join(',') + ')';
-    connection.query(queryPart1, {}, function (err, data) {
-        if (err) { throw err };
-        // let theProducts = ['Back to Main Menu'];
-        let i = 0;
-        console.log('\n');
-        let theTotal = 0;
-        data.forEach(element => {
-            theSubtotal = element.price * theQtys[i]
-            theTotal += theSubtotal;
-            console.log(element.product_name + '\t$' + element.price + '\tQty: ' + theQtys[i] + '\tSubtotal: $' + theSubtotal);
-            i++;
-        });
-        console.log('Your total is $' + theTotal);
+function viewCart(data) {
+    if (data == null || data[0].user_cart == null) {
+        console.log('\nYour cart is empty\n');
         initialInquiry();
-    });
+    } else {
+        let theCart = data[0].user_cart.split('\t');
+        let theIDs = [];
+        let theQtys = [];
+        theCart.forEach(element => {
+            if (element != '') {
+                theIDs.push(element.split(',')[0]);
+                theQtys.push(element.split(',')[1]);
+            };
+        });
+        let queryPart1 = 'select product_name, price from products where item_id in (' + theIDs.join(',') + ')';
+        connection.query(queryPart1, {}, function (err, data) {
+            if (err) { throw err };
+            let i = 0;
+            console.log('\n');
+            let theTotal = 0;
+            data.forEach(element => {
+                theSubtotal = element.price * theQtys[i]
+                theTotal += theSubtotal;
+                console.log(element.product_name + '\t$' + element.price.toFixed(2) + '\tQty: ' + theQtys[i] + '\tSubtotal: $' + theSubtotal.toFixed(2));
+                i++;
+            });
+            console.log('\t\t\t\tYour total is $' + theTotal.toFixed(2));
+            initialInquiry();
+        });
+    };
 };
 
 function viewAccount(data) {
@@ -586,15 +606,30 @@ function viewAccount(data) {
 function viewSales(data) {
     if (data.length < 1) {
         console.log('No sales have been recorded yet.');
-        initialInquiry();
     } else {
-        let theProducts = ['Back to Main Menu'];
-        data.forEach(element => {
-            theProducts.push(`${element.department_name}:\t${element.product_name}:\tQty Sold: ${element.sold}`);
-        });
         console.log('\n');
-        selectItemFromList(theProducts);
+        let theLastDeptName = '';
+        let theDeptTotal = 0;
+        data.forEach(element => {
+            if (theLastDeptName === '') {
+                console.log('------------------------------------------------------------');
+                console.log(`Department: ${element.department_name}`);
+            };
+            if (theLastDeptName != element.department_name && theLastDeptName != '') {
+                console.log(`\t\t\t\t${theLastDeptName} total sales: $${theDeptTotal.toFixed(2)}`);
+                console.log('------------------------------------------------------------\n');
+                theDeptTotal = 0;
+                console.log(`Department: ${element.department_name}`);
+            };
+            let theProfit = (element.price - element.cost) * element.sold;
+            theDeptTotal += theProfit;
+            console.log(`${element.product_name}:\tQty Sold: ${element.sold}\tCost: $${element.cost.toFixed(2)}\tPrice: $${element.price.toFixed(2)}\tProfit: $${theProfit.toFixed(2)}`);
+            theLastDeptName = element.department_name;
+        });
+        console.log(`\t\t\t\t${theLastDeptName} total sales: $${theDeptTotal.toFixed(2)}`);
+        console.log('------------------------------------------------------------\n');
     };
+    initialInquiry();
 };
 
 function adjustInventory(data) {
@@ -624,17 +659,23 @@ function adjustInventory(data) {
 };
 
 function checkIfValidNum(answer) {
-    console.log('This must be a number only, without a dollar sign.');
+    if (Number.isNaN(parseFloat(answer))) {
+        console.log('\nThis must be a number only, without a dollar sign.');
+    };
     return (answer !== '' && !Number.isNaN(parseFloat(answer)));
 };
 
 function checkIfValidIntOver0(answer) {
-    console.log('This must be a number greater than zero.');
+    if (Number.isNaN(parseInt(answer)) || answer > 0) {
+        console.log('\nThis must be a number greater than zero.');
+    };
     return (answer !== '' && !Number.isNaN(parseInt(answer)) && answer > 0);
 };
 
 function checkIfValidText(answer) {
-    console.log('This must not be left blank.');
+    if (answer == '') {
+        console.log('\nThis must not be left blank.');
+    };
     return (answer !== '');
 };
 
