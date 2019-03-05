@@ -1,6 +1,7 @@
 const mysql = require('mysql');
 const inquirer = require('inquirer');
 const chalk = require('chalk');
+const strpad = require('strpad');
 var loginID = 1; // guest user
 var loggedInAs = 'guest';
 
@@ -264,8 +265,8 @@ function addProduct(data) {
                 console.log(`\nDepartment: ${answer.department_name}`);
                 console.log(`Product: ${answer.product_name}`);
                 console.log(`Description: ${answer.product_desc}`);
-                console.log(`Price: $${answer.price.toFixed(2)}`);
-                console.log(`Cost: $${answer.cost.toFixed(2)}`);
+                console.log(`Price: $${strpad.left(parseFloat(answer.price).toFixed(2), 7)}`);
+                console.log(`Cost:  $${strpad.left(parseFloat(answer.cost).toFixed(2), 7)}`);
                 console.log(`Qty on Hand: ${answer.stock_quantity}\n`);
                 initialInquiry();
             });
@@ -413,15 +414,18 @@ function selectItemFromList(theList) {
 };
 
 function viewItem(data) {
-    console.log(`\nItem ID: ${data[0].item_id}`);
-    console.log(`Product Name: ${data[0].product_name}`);
-    console.log(`Description: ${data[0].product_desc}`);
-    console.log(`Price: $${data[0].price.toFixed(2)}`);
-    console.log(`Qty Available: ${data[0].stock_quantity}`);
+    console.log('\n');
+    // console.log('\n' + strpad.left('', 55, '-'));
+    console.log(chalk.black.bold.bgWhiteBright(strpad.right(data[0].product_name, 18) + strpad.left('Price: $' + data[0].price.toFixed(2), 37)));
+    console.log(chalk.bgWhite(strpad.left('', 55)));
+    console.log(chalk.black.bgWhite(strpad.right('Description: ' + data[0].product_desc, 55)));
+    console.log(chalk.bgWhite(strpad.left('', 55)));
+    console.log(chalk.black.bgWhiteBright(strpad.right('Item ID: ' + data[0].item_id, 12) + strpad.left('Qty Available: ' + data[0].stock_quantity, 43)));
     if (loggedInAs === 'administrator') {
         console.log(`Qty Sold: ${data[0].sold}\n`);
         initialInquiry();
     } else {
+        // console.log(strpad.left('', 55, '-'));
         console.log('\n');
         let theChoices = [];
         switch (loggedInAs) {
@@ -583,14 +587,18 @@ function viewCart(data) {
             if (err) { throw err };
             let i = 0;
             console.log('\n');
+            console.log(chalk.black.bold.bgWhiteBright(strpad.right('SHOPPING CART', 55)));
             let theTotal = 0;
             data.forEach(element => {
                 theSubtotal = element.price * theQtys[i]
                 theTotal += theSubtotal;
-                console.log(element.product_name + '\t$' + element.price.toFixed(2) + '\tQty: ' + theQtys[i] + '\tSubtotal: $' + theSubtotal.toFixed(2));
+                console.log(chalk.black.bgWhite(strpad.right(element.product_name, 20) + strpad.left('$' + element.price.toFixed(2), 7) + '  Qty: ' + strpad.left(theQtys[i], 2) + '  Subtotal: ' + strpad.left('$' + theSubtotal.toFixed(2), 7)));
                 i++;
             });
-            console.log('\t\t\t\tYour total is $' + theTotal.toFixed(2));
+            console.log(chalk.black.bgWhite(strpad.left('-------', 55)));
+            // console.log(chalk.bgWhite(strpad.left('', 55)));
+            console.log(chalk.black.bold.bgWhiteBright(strpad.left('Your total is $' + theTotal.toFixed(2), 55)));
+            console.log(chalk.black.bold.bgWhiteBright(strpad.left('=======', 55)));
             initialInquiry();
         });
     };
@@ -613,22 +621,22 @@ function viewSales(data) {
         let theDeptTotal = 0;
         data.forEach(element => {
             if (theLastDeptName === '') {
-                console.log('------------------------------------------------------------');
-                console.log(`Department: ${element.department_name}`);
+                console.log(strpad.left('', 75, '-'));
+                console.log(chalk.whiteBright(`Department: ${element.department_name}`));
             };
             if (theLastDeptName != element.department_name && theLastDeptName != '') {
-                console.log(`\t\t\t\t${theLastDeptName} total sales: $${theDeptTotal.toFixed(2)}`);
-                console.log('------------------------------------------------------------\n');
+                console.log(chalk.whiteBright(`\t\t\t\t\t${strpad.right(theLastDeptName, 14)} total sales: ${strpad.left('$' + theDeptTotal.toFixed(2), 7)}`));
+                console.log(strpad.left('', 75, '-'));
                 theDeptTotal = 0;
-                console.log(`Department: ${element.department_name}`);
+                console.log(chalk.whiteBright(`Department: ${element.department_name}`));
             };
             let theProfit = (element.price - element.cost) * element.sold;
             theDeptTotal += theProfit;
-            console.log(`${element.product_name}:\tQty Sold: ${element.sold}\tCost: $${element.cost.toFixed(2)}\tPrice: $${element.price.toFixed(2)}\tProfit: $${theProfit.toFixed(2)}`);
+            console.log(`${strpad.right(element.product_name, 18)}  Sold: ${element.sold}  Cost: ${strpad.left('$' + element.cost.toFixed(2), 7)}  Price: ${strpad.left('$' + element.price.toFixed(2), 7)}  Profit: ${strpad.left('$' + theProfit.toFixed(2), 7)}`);
             theLastDeptName = element.department_name;
         });
-        console.log(`\t\t\t\t${theLastDeptName} total sales: $${theDeptTotal.toFixed(2)}`);
-        console.log('------------------------------------------------------------\n');
+        console.log(chalk.whiteBright(`\t\t\t\t\t${strpad.right(theLastDeptName, 14)} total sales: ${strpad.left('$' + theDeptTotal.toFixed(2), 7)}`));
+        console.log(strpad.left('', 75, '-'));
     };
     initialInquiry();
 };
