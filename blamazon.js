@@ -597,7 +597,7 @@ function updateCartData(data, itemID, howMany) {
 function viewCart(data) {
     console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('YOUR SHOPPING CART', 55)));
     if (data == null || data[0].user_cart == null) {
-        console.log('\n  Your cart is empty.\n');
+        console.log(chalk.yellowBright('\n  Your cart is empty.\n'));
         initialInquiry();
     } else {
         let theCart = data[0].user_cart.split('\t');
