@@ -301,8 +301,8 @@ function addDepartment() {
             function (err, res) {
                 if (err) { throw err };
                 console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('DEPARTMENT HAS BEEN CREATED', 55)) + '\n');
-                console.log(`\n  Department: ${answer.department_name}`);
-                console.log(`  Overhead Costs: $${answer.overhead_costs}\n`);
+                console.log(`  Department: ${answer.department_name}`);
+                console.log(`  Overhead Costs: $${answer.overhead_costs}`);
                 initialInquiry();
             });
     });
@@ -463,7 +463,12 @@ function viewItem(data) {
             } else {
                 switch (answer.initial) {
                     case 'Add to Cart':
-                        addToCart(data[0].item_id, data[0].stock_quantity, data[0].sold);
+                        if (data[0].stock_quantity == 0) {
+                            console.log(chalk.yellowBright('\n  We are sorry, there is no stock of this item available.\n'));
+                            viewItem(data);
+                        } else {
+                            addToCart(data[0].item_id, data[0].stock_quantity, data[0].sold);
+                        };
                         break;
                     case 'View Cart/Checkout':
                         queryPart1 = `select user_cart from accounts where ?`;
@@ -494,48 +499,46 @@ function readData(queryPart1, queryPart2, callback, variable1, variable2) {
 };
 
 function addToCart(itemID, currentQty, currentSold) {
-    if (currentQty < 1) {
-        //out of stock
-    } else {
-        inquirer.prompt([
-            {
-                name: 'howMany',
-                type: 'input',
-                message: 'How many would you like?',
-                default: 1,
-                validate: checkIfValidIntOver0
-            }
-        ]).then((answer) => {
-            let howMany = parseInt(answer.howMany);
-            let newQty = parseInt(currentQty) - howMany;
-            let newSold = parseInt(currentSold) + howMany;
-            if (newQty < 0) {
-                inquirer.prompt([
-                    {
-                        name: 'howMany',
-                        type: 'confirm',
-                        message: 'There is not enough stock to fill your order. Would you like the ' + currentQty + ' available?',
-                    }
-                ]).then((answer) => {
-                    if (answer.howMany) {
-                        newQty = currentQty;
-                        newSold = currentSold + currentQty;
-                        updateTheItem(queryPart1, queryPart2, itemID, newQty, newSold);
-                    } else {
-                        newQty = 0;
-                    };
+    inquirer.prompt([
+        {
+            name: 'howMany',
+            type: 'input',
+            message: 'How many would you like?',
+            default: 1,
+            validate: checkIfValidIntOver0
+        }
+    ]).then((answer) => {
+        let howMany = parseInt(answer.howMany);
+        let newQty = parseInt(currentQty) - howMany;
+        let newSold = parseInt(currentSold) + howMany;
+        queryPart1 = `select user_cart from accounts where ?`;
+        queryPart2 = { account_id: loginID };
+        if (newQty < 0) {
+            inquirer.prompt([
+                {
+                    name: 'howMany',
+                    type: 'confirm',
+                    message: 'There is not enough stock to fill your order. Would you like the ' + currentQty + ' available?',
+                }
+            ]).then((answer) => {
+                if (answer.howMany) {
+                    newQty = 0;
+                    newSold = parseInt(currentSold) + parseInt(currentQty);
+                    howMany = parseInt(currentQty);
+                    updateTheItem(queryPart1, queryPart2, itemID, newQty, newSold, howMany);
+                } else {
+                    newQty = 0;
                     browseProducts();
-                });
-            } else {
-                queryPart1 = `select user_cart from accounts where ?`;
-                queryPart2 = { account_id: loginID };
-                updateTheItem(queryPart1, queryPart2, itemID, newQty, newSold, howMany);
-            };
-        });
-    };
+                };
+            });
+        } else {
+            updateTheItem(queryPart1, queryPart2, itemID, newQty, newSold, howMany);
+        };
+    });
 };
 
 function updateTheItem(queryPart1, queryPart2, itemID, newQty, newSold, howMany) {
+    // console.log(`in update the item: ${newQty}, ${newSold}, ${howMany}`);
     connection.query('update products set ? where ?',
         [{
             stock_quantity: newQty,
@@ -614,7 +617,7 @@ function viewCart(data) {
             data.forEach(element => {
                 theSubtotal = element.price * theQtys[i]
                 theTotal += theSubtotal;
-                console.log('  ' + chalk.black.bgWhite(strpad.right(element.product_name, 20) + strpad.left('$' + element.price.toFixed(2), 7) + '  Qty: ' + strpad.left(theQtys[i], 2) + '  Subtotal: ' + strpad.left('$' + theSubtotal.toFixed(2), 7)));
+                console.log('  ' + chalk.black.bgWhite(strpad.right(element.product_name, 20) + strpad.left('$' + element.price.toFixed(2), 7) + ' Qty: ' + strpad.left(theQtys[i], 2) + ' Subtotal: ' + strpad.left('$' + theSubtotal.toFixed(2), 9)));
                 i++;
             });
             console.log('  ' + chalk.black.bgWhite(strpad.left('-------', 55)));
@@ -675,17 +678,17 @@ function viewSales(data) {
                 console.log('  ' + chalk.whiteBright(`Department: ${element.department_name}`));
             };
             if (theLastDeptName != element.department_name && theLastDeptName != '') {
-                console.log('  ' + chalk.whiteBright(`\t\t\t\t\t  ${strpad.right(theLastDeptName, 14)} total sales: ${strpad.left('$' + theDeptTotal.toFixed(2), 7)}`));
+                console.log('  ' + chalk.whiteBright(`\t\t\t\t\t${strpad.right(theLastDeptName, 14)} total sales: ${strpad.left('$' + theDeptTotal.toFixed(2), 9)}`));
                 console.log('  ' + strpad.left('', 75, '-'));
                 theDeptTotal = 0;
                 console.log('  ' + chalk.whiteBright(`Department: ${element.department_name}`));
             };
             let theProfit = (element.price - element.cost) * element.sold;
             theDeptTotal += theProfit;
-            console.log(`  ${strpad.right(element.product_name, 18)}  Sold: ${element.sold}  Cost: ${strpad.left('$' + element.cost.toFixed(2), 7)}  Price: ${strpad.left('$' + element.price.toFixed(2), 7)}  Profit: ${strpad.left('$' + theProfit.toFixed(2), 7)}`);
+            console.log(`  ${strpad.right(element.product_name, 18)} Sold: ${strpad.left(element.sold, 3)} Cost: ${strpad.left('$' + element.cost.toFixed(2), 7)} Price: ${strpad.left('$' + element.price.toFixed(2), 7)} Profit: ${strpad.left('$' + theProfit.toFixed(2), 9)}`);
             theLastDeptName = element.department_name;
         });
-        console.log('  ' + chalk.whiteBright(`\t\t\t\t\t  ${strpad.right(theLastDeptName, 14)} total sales: ${strpad.left('$' + theDeptTotal.toFixed(2), 7)}`));
+        console.log('  ' + chalk.whiteBright(`\t\t\t\t\t${strpad.right(theLastDeptName, 14)} total sales: ${strpad.left('$' + theDeptTotal.toFixed(2), 9)}`));
         console.log('  ' + strpad.left('', 75, '-'));
     };
     initialInquiry();
