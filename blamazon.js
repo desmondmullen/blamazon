@@ -392,7 +392,7 @@ function browseProducts(option) {
         let theProducts = ['Back to Main Menu'];
         if (loggedInAs === 'manager') {
             data.forEach(element => {
-                theProducts.push('  ' + strpad.right(element.department_name, 14) + '\t' + strpad.right(element.product_name, 18) + '     Qty: ' + strpad.left(element.stock_quantity, 3));
+                theProducts.push('  ' + strpad.right(element.department_name, 14) + '\t' + strpad.right(element.product_name, 18) + '\tQty:' + strpad.left(element.stock_quantity, 3));
             });
         } else {
             data.forEach(element => {
