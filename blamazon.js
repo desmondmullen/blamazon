@@ -1,4 +1,5 @@
 const mysql = require('mysql');
+require('dotenv').config();
 const inquirer = require('inquirer');
 const chalk = require('chalk');
 const strpad = require('strpad');
@@ -6,10 +7,10 @@ var loginID = 1; // guest user
 var loggedInAs = 'guest';
 
 const connection = mysql.createConnection({
-    host: 'localhost',
-    port: 3306,
+    host: process.env.MYQSL_HOST,
+    port: process.env.MYQSL_PORT,
     user: 'root',
-    password: 'vivian',
+    password: process.env.MYQSL_PASS,
     database: 'blamazonDB'
 });
 
@@ -84,7 +85,7 @@ function initialInquiry() {
                     createAccount();
                     break;
                 case 'View Account':
-                    queryPart1 = `select * from accounts where ?`;
+                    queryPart1 = `SELECT * FROM accounts WHERE ?`;
                     queryPart2 = { account_id: loginID };
                     readData(queryPart1, queryPart2, viewAccount);
                     break;
@@ -96,7 +97,7 @@ function initialInquiry() {
                     initialInquiry();
                     break;
                 case 'View Cart/Checkout':
-                    queryPart1 = `select user_cart from accounts where ?`;
+                    queryPart1 = `SELECT user_cart FROM accounts WHERE ?`;
                     queryPart2 = { account_id: loginID };
                     readData(queryPart1, queryPart2, viewCart);
                     break;
@@ -107,13 +108,19 @@ function initialInquiry() {
                     browseProducts(); // first we need to see the items to pick one
                     break;
                 case 'Add New Product':
-                    readData(`select department_name from departments`, {}, addProduct)
+                    queryPart1 = `SELECT * FROM departments;`;
+                    readData(queryPart1, {}, addProduct)
                     break;
                 case 'Add New Department':
                     addDepartment();
                     break;
                 case 'View Sales by Department':
-                    queryPart1 = `select * from products where sold >0 order by department_name asc`;
+                    queryPart1 = `
+    SELECT departments.department_name, products.*
+    FROM products
+    LEFT JOIN departments ON products.department_id=departments.department_id
+    WHERE products.sold>0
+    ORDER BY departments.department_name asc;`;
                     readData(queryPart1, {}, viewSales);
                     break;
                 case 'View Site as User':
@@ -137,7 +144,7 @@ initialInquiry();
 
 function cleanUpAndExit() {
     if (loginID === 1) { // guest user
-        connection.query('update accounts set ? where ?',
+        connection.query(`UPDATE accounts SET ? WHERE ?`,
             [{
                 user_cart: null
             },
@@ -178,7 +185,7 @@ function doLogin() {
             validate: checkIfValidText
         },
     ]).then((answer) => {
-        connection.query('select account_id, user_name, user_password, first_name, last_name, account_type from accounts where ?', { user_name: answer.user_name }, function (err, data) {
+        connection.query(`SELECT account_id, user_name, user_password, first_name, last_name, account_type FROM accounts WHERE ?`, { user_name: answer.user_name }, function (err, data) {
             if (err) { throw err };
             if (data == '' || answer.user_password !== data[0].user_password) {
                 if (data == '') {
@@ -215,11 +222,11 @@ function addProduct(data) {
     console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('CREATE NEW PRODUCT', 55)) + '\n');
     let theDepartmentsArray = [];
     data.forEach(element => {
-        theDepartmentsArray.push(element.department_name);
+        theDepartmentsArray.push(`${strpad.left(element.department_id, 3)}: ${element.department_name}`);
     });
     inquirer.prompt([
         {
-            name: 'department_name',
+            name: 'department_id',
             type: 'list',
             message: 'Please select the department for this product:',
             choices: theDepartmentsArray
@@ -255,9 +262,11 @@ function addProduct(data) {
             validate: checkIfValidNum
         }
     ]).then((answer) => {
-        connection.query('insert into products set ?',
+        let theDepartmentID = parseInt(answer.department_id.split(': ')[0]);
+        let theDepartmentName = answer.department_id.split(': ')[1];
+        connection.query(`INSERT INTO products SET ?`,
             {
-                department_name: answer.department_name,
+                department_id: theDepartmentID,
                 product_name: answer.product_name,
                 product_desc: answer.product_desc,
                 price: answer.price,
@@ -266,7 +275,7 @@ function addProduct(data) {
             },
             function (err, res) {
                 if (err) { throw err };
-                console.log('\n\n  New product created in ' + answer.department_name + ':\n');
+                console.log('\n\n  New product created in ' + theDepartmentName + ':\n');
                 console.log('  ' + chalk.black.bold.bgWhiteBright(strpad.right(answer.product_name, 18) + strpad.left('Price: $' + parseFloat(answer.price).toFixed(2), 37)));
                 console.log('  ' + chalk.bgWhite(strpad.left('', 55)));
                 console.log('  ' + chalk.black.bgWhite(strpad.right('Description: ' + answer.product_desc, 55)));
@@ -293,7 +302,7 @@ function addDepartment() {
             validate: checkIfValidNum
         },
     ]).then((answer) => {
-        connection.query('insert into departments set ?',
+        connection.query(`INSERT INTO departments SET ?`,
             {
                 department_name: answer.department_name,
                 overhead_costs: answer.overhead_costs
@@ -353,7 +362,7 @@ function createAccount() {
     inquirer.prompt(theQuestions).then((answer) => {
         let accountType = 'user'
         if (loggedInAs === 'administrator') { accountType = answer.account_type };
-        connection.query('insert into accounts set ?',
+        connection.query(`INSERT INTO accounts SET ?`,
             {
                 user_name: answer.user_name,
                 user_password: answer.user_password,
@@ -364,7 +373,7 @@ function createAccount() {
             },
             function (err, res) {
                 if (err) { throw err };
-                connection.query('select account_id from accounts where ?', { user_name: answer.user_name }, function (err, data) {
+                connection.query(`SELECT account_id FROM accounts WHERE ?`, { user_name: answer.user_name }, function (err, data) {
                     if (err) { throw err };
                     if (loggedInAs != 'administrator') { // if an administrator is creating an account
                         loginID = data[0].account_id;    // we don't want to switch out of adminstrator
@@ -383,9 +392,15 @@ function createAccount() {
 };
 
 function browseProducts(option) {
-    let theQuery = 'select department_name, product_name, price, stock_quantity from products';
+    let theQuery = `
+    SELECT departments.department_name, products.product_name, products.price, products.stock_quantity
+    FROM products
+    LEFT JOIN departments ON products.department_id=departments.department_id;`;
     if (option === 'low inventory') {
-        theQuery = 'select department_name, product_name, stock_quantity from products where stock_quantity<=10';
+        theQuery = `
+    SELECT departments.department_name, products.product_name, products.price, products.stock_quantity
+    FROM products WHERE stock_quantity<=10
+    LEFT JOIN departments ON products.department_id=departments.department_id;`;
     };
     connection.query(theQuery, function (err, data) {
         if (err) { throw err };
@@ -421,7 +436,12 @@ function selectItemFromList(theList) {
             initialInquiry();
         } else {
             let theItemToView = answer.select.split('\t')[1];
-            readData(`select * from products where ?`, { product_name: theItemToView }, viewItem);
+            queryPart1 = `
+    SELECT departments.department_name, products.*
+    FROM products
+    LEFT JOIN departments ON products.department_id=departments.department_id
+    WHERE ?;`;
+            readData(queryPart1, { product_name: theItemToView }, viewItem);
         };
     });
 };
@@ -471,13 +491,18 @@ function viewItem(data) {
                         };
                         break;
                     case 'View Cart/Checkout':
-                        queryPart1 = `select user_cart from accounts where ?`;
+                        queryPart1 = `SELECT user_cart FROM accounts WHERE ?`;
                         queryPart2 = { account_id: loginID };
                         readData(queryPart1, queryPart2, viewCart);
                         break;
                     case 'Adjust Inventory Quantity':
                         let theProductID = data[0].item_id;
-                        readData(`select * from products where ?`, { item_id: theProductID }, adjustInventory);
+                        queryPart1 = `
+    SELECT departments.department_name, products.*
+    FROM products
+    LEFT JOIN departments ON products.department_id=departments.department_id
+    WHERE ?;`;
+                        readData(queryPart1, { item_id: theProductID }, adjustInventory);
                         break;
                     default:
                     // code block
@@ -511,7 +536,7 @@ function addToCart(itemID, currentQty, currentSold) {
         let howMany = parseInt(answer.howMany);
         let newQty = parseInt(currentQty) - howMany;
         let newSold = parseInt(currentSold) + howMany;
-        queryPart1 = `select user_cart from accounts where ?`;
+        queryPart1 = `SELECT user_cart FROM accounts WHERE ?`;
         queryPart2 = { account_id: loginID };
         if (newQty < 0) {
             inquirer.prompt([
@@ -538,8 +563,7 @@ function addToCart(itemID, currentQty, currentSold) {
 };
 
 function updateTheItem(queryPart1, queryPart2, itemID, newQty, newSold, howMany) {
-    // console.log(`in update the item: ${newQty}, ${newSold}, ${howMany}`);
-    connection.query('update products set ? where ?',
+    connection.query(`UPDATE products SET ? WHERE ?`,
         [{
             stock_quantity: newQty,
             sold: newSold
@@ -550,7 +574,7 @@ function updateTheItem(queryPart1, queryPart2, itemID, newQty, newSold, howMany)
         function (err, res) {
             if (err) { throw err };
         });
-    queryPart1 = `select user_cart from accounts where ?`;
+    queryPart1 = `SELECT user_cart FROM accounts WHERE ?`;
     queryPart2 = { account_id: loginID };
     readData(queryPart1, queryPart2, updateCartData, itemID, howMany);
     browseProducts();
@@ -581,7 +605,7 @@ function updateCartData(data, itemID, howMany) {
             theNewData.push(`${itemID},${howMany}`);
         };
     };
-    connection.query('update accounts set ? where ?',
+    connection.query(`UPDATE accounts SET ? WHERE ?`,
         [{
             user_cart: theNewData.join('\t')
         },
@@ -609,7 +633,7 @@ function viewCart(data) {
                 theQtys.push(element.split(',')[1]);
             };
         });
-        let queryPart1 = 'select product_name, price from products where item_id in (' + theIDs.join(',') + ')';
+        let queryPart1 = `SELECT product_name, price FROM products WHERE item_id IN (' + theIDs.join(',') + ')`;
         connection.query(queryPart1, {}, function (err, data) {
             if (err) { throw err };
             let i = 0;
@@ -704,7 +728,7 @@ function adjustInventory(data) {
             validate: checkIfValidNum
         }
     ]).then((answer) => {
-        connection.query('update products set ? where ?',
+        connection.query(`UPDATE products set ? WHERE ?`,
             [{
                 stock_quantity: answer.newQuantity
             },

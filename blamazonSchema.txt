@@ -55,8 +55,7 @@ CREATE TABLE products
 (
 item_id integer not null
     auto_increment,
-department_name varchar
-    (100) not null,
+department_id integer not null,
 product_name varchar
     (100) not null,                      
 product_desc varchar
