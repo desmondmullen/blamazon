@@ -84,7 +84,10 @@ function initialInquiry() {
                     cleanUp(doLogin);
                     break;
                 case 'Create Account':
-                    createAccount();
+                    // the following keeps the guest's cart, part1
+                    queryPart1 = `SELECT user_cart FROM accounts WHERE ?`;
+                    queryPart2 = { account_id: loginID };
+                    readWriteData(queryPart1, queryPart2, createAccount);
                     break;
                 case 'Add New User':
                     createAccount();
@@ -92,7 +95,7 @@ function initialInquiry() {
                 case 'View Account':
                     queryPart1 = `SELECT * FROM accounts WHERE ?`;
                     queryPart2 = { account_id: loginID };
-                    readData(queryPart1, queryPart2, viewAccount);
+                    readWriteData(queryPart1, queryPart2, viewAccount);
                     break;
                 case 'Logout':
                     resetToGuest();
@@ -100,7 +103,7 @@ function initialInquiry() {
                 case 'View Cart/Checkout':
                     queryPart1 = `SELECT user_cart FROM accounts WHERE ?`;
                     queryPart2 = { account_id: loginID };
-                    readData(queryPart1, queryPart2, viewCart);
+                    readWriteData(queryPart1, queryPart2, viewCart);
                     break;
                 case 'View Low Inventory':
                     browseProducts('low inventory');
@@ -110,7 +113,7 @@ function initialInquiry() {
                     break;
                 case 'Add New Product':
                     queryPart1 = `SELECT * FROM departments;`;
-                    readData(queryPart1, {}, addProduct)
+                    readWriteData(queryPart1, {}, addProduct)
                     break;
                 case 'Add New Department':
                     addDepartment();
@@ -122,7 +125,7 @@ function initialInquiry() {
     LEFT JOIN departments ON products.department_id=departments.department_id
     WHERE products.sold>0
     ORDER BY departments.department_name asc;`;
-                    readData(queryPart1, {}, viewSales);
+                    readWriteData(queryPart1, {}, viewSales);
                     break;
                 case 'View Site as User':
                     console.log('\n  Now viewing site with user privileges...\n');
@@ -145,13 +148,17 @@ function initialInquiry() {
 
 initialInquiry();
 
-function cleanUp(callback) {
+function cleanUp(callback, alternateID) {
+    let theAccountID = loginID;
+    if (alternateID != undefined) {
+        theAccountID = alternateID;
+    };
     connection.query(`UPDATE accounts SET ? WHERE ?`,
         [{
             user_cart: null
         },
         {
-            account_id: loginID
+            account_id: theAccountID
         }],
         function (err, res) {
             if (err) { throw err };
@@ -326,10 +333,11 @@ function addDepartment() {
     });
 };
 
-function createAccount() {
+function createAccount(data) {
     // in future, this function should check to see if
     // the chosen username already exists
     console.log('\n');
+    let theCartData = data[0].user_cart;
     let theQuestions = [
         {
             name: 'user_name',
@@ -392,6 +400,16 @@ function createAccount() {
                         // otherwise, we want to log in to our new account
                         loginID = data[0].account_id;
                         loggedInAs = accountType;
+                        // the following keeps the guest's cart, part2
+                        queryPart1 = `UPDATE accounts SET ? WHERE ?`;
+                        queryPart2 = [{
+                            user_cart: theCartData
+                        },
+                        {
+                            account_id: loginID
+                        }];
+                        readWriteData(queryPart1, queryPart2);
+                        cleanUp('', 1); // clear's guest's cart
                     };
                     console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('YOUR ACCOUNT HAS BEEN CREATED', 55)) + '\n');
                     console.log(`  User Name:    ${answer.user_name}`);
@@ -462,7 +480,7 @@ function selectItemFromList(theList) {
             // not want to display product_id to the user in the
             // browse window and implementing search by id without
             // displaying id would require a bit more work.
-            readData(queryPart1, { product_name: theItemToView }, viewItem);
+            readWriteData(queryPart1, { product_name: theItemToView }, viewItem);
         };
     });
 };
@@ -514,7 +532,7 @@ function viewItem(data) {
                     case 'View Cart/Checkout':
                         queryPart1 = `SELECT user_cart FROM accounts WHERE ?`;
                         queryPart2 = { account_id: loginID };
-                        readData(queryPart1, queryPart2, viewCart);
+                        readWriteData(queryPart1, queryPart2, viewCart);
                         break;
                     case 'Adjust Inventory Quantity':
                         let theProductID = data[0].item_id;
@@ -523,19 +541,19 @@ function viewItem(data) {
     FROM products
     LEFT JOIN departments ON products.department_id=departments.department_id
     WHERE ?;`;
-                        readData(queryPart1, { item_id: theProductID }, adjustInventory);
+                        readWriteData(queryPart1, { item_id: theProductID }, adjustInventory);
                         break;
                     default:
                         queryPart1 = `SELECT user_cart FROM accounts WHERE ?`;
                         queryPart2 = { account_id: loginID };
-                        readData(queryPart1, queryPart2, viewCart);
+                        readWriteData(queryPart1, queryPart2, viewCart);
                 }
             };
         });
     };
 };
 
-function readData(queryPart1, queryPart2, callback, variable1, variable2) {
+function readWriteData(queryPart1, queryPart2, callback, variable1, variable2) {
     connection.query(queryPart1, queryPart2, function (err, data) {
         if (err) { throw err };
         if (typeof callback == 'function') {
@@ -602,7 +620,7 @@ function updateTheItem(queryPart1, queryPart2, itemID, newQty, newSold, howMany)
         });
     queryPart1 = `SELECT user_cart FROM accounts WHERE ?`;
     queryPart2 = { account_id: loginID };
-    readData(queryPart1, queryPart2, updateCartData, itemID, howMany);
+    readWriteData(queryPart1, queryPart2, updateCartData, itemID, howMany);
     browseProducts();
 };
 
