@@ -3,7 +3,9 @@
 **Blamazon. copy copy copy**
 
 # Features
-In addition to the basic functions of... copy copy copy, this app does the following:
+In addition to the basic functions of... 
+http://github.com - automatic!
+[GitHub](http://github.com) copy copy copy, this app does the following:
 
 ### ADDITIONAL FEATURES:
 * copy copy copy
