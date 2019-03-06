@@ -19,6 +19,7 @@ console.log('  ' + chalk.black.bgCyan(strpad.center('***************************
 console.log('  ' + chalk.black.bold.bgCyan(strpad.center('Welcome to Blamazon!', 55)));
 console.log('  ' + chalk.black.bgCyan(strpad.center('***************************', 55)));
 console.log('  ' + chalk.bgCyan(strpad.center('', 55)));
+console.log('  ' + chalk.cyan(strpad.center('©2019 desmondmullen.com', 55)));
 
 function initialInquiry() {
     console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('MAIN MENU', 55)) + '\n');
