@@ -36,7 +36,7 @@ In addition to the basic functions of... copy copy copy, this app does the follo
 ![manager: adjust inventory](screenshots/11-manager-adjust-inventory-quantity.png)
 12. `Add New Product` in manager's view allows manager to add a new product:
 ![manager: add new product](screenshots/12-manager-add-new-product.png)
-13. `Login` as administrator. Login allows users, managers, and administrators alike to log in to their accounts with privilege-appropriate access:
+13. `Login` as administrator/supervisor. Login allows users, managers, and administrators alike to log in to their accounts with privilege-appropriate access:
 ![login as administrator](screenshots/13-login-as-administrator.png)
 14. `View Sales by Department` in administrator/supervisor's view displays a table of sales data with details of each item and totals for each department:
 ![administrator: view sales](screenshots/14-administrator-view-sales-by-department.png)
