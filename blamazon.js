@@ -37,7 +37,7 @@ function initialInquiry() {
             theChoices = ['Exit', 'View Sales by Department', 'Add New Department', 'Add New User', 'View Site as Manager', 'View Site as User', 'View Account', 'Logout'];
             break;
         default:
-        // code block
+            theChoices = ['Exit', 'Browse Inventory', 'View Cart/Checkout', 'Create Account', 'Login'];
     };
     let theDefault = '';
     switch (loggedInAs) {
@@ -54,7 +54,7 @@ function initialInquiry() {
             theDefault = 'View Sales by Department';
             break;
         default:
-        // code block
+            theDefault = 'Browse Inventory';
     };
     inquirer.prompt([{
         name: 'initial',
@@ -64,7 +64,11 @@ function initialInquiry() {
         default: theDefault
     }]).then((answer) => {
         if (answer.initial === 'Exit') {
-            cleanUpAndExit();
+            if (loginID === 1) {
+                cleanUp(doExit);
+            } else {
+                doExit();
+            };
         } else {
             let queryPart1 = '';
             let queryPart2 = {};
@@ -76,7 +80,7 @@ function initialInquiry() {
                     browseProducts();
                     break;
                 case 'Login':
-                    doLogin();
+                    cleanUp(doLogin);
                     break;
                 case 'Create Account':
                     createAccount();
@@ -90,11 +94,7 @@ function initialInquiry() {
                     readData(queryPart1, queryPart2, viewAccount);
                     break;
                 case 'Logout':
-                    console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('LOGOUT', 55)) + '\n');
-                    console.log('  You are now logged out.');
-                    loggedInAs = 'guest';
-                    loginID = 1;
-                    initialInquiry();
+                    resetToGuest();
                     break;
                 case 'View Cart/Checkout':
                     queryPart1 = `SELECT user_cart FROM accounts WHERE ?`;
@@ -134,7 +134,9 @@ function initialInquiry() {
                     initialInquiry();
                     break;
                 default:
-                // code block
+                    console.log('\n  Now viewing site with user privileges...\n');
+                    loggedInAs = 'user';
+                    initialInquiry();
             }
         };
     });
@@ -142,22 +144,28 @@ function initialInquiry() {
 
 initialInquiry();
 
-function cleanUpAndExit() {
-    if (loginID === 1) { // guest user
-        connection.query(`UPDATE accounts SET ? WHERE ?`,
-            [{
-                user_cart: null
-            },
-            {
-                account_id: 1
-            }],
-            function (err, res) {
-                if (err) { throw err };
-                doExit();
-            });
-    } else {
-        doExit();
-    };
+function cleanUp(callback) {
+    connection.query(`UPDATE accounts SET ? WHERE ?`,
+        [{
+            user_cart: null
+        },
+        {
+            account_id: loginID
+        }],
+        function (err, res) {
+            if (err) { throw err };
+            if (typeof callback == 'function') {
+                callback();
+            };
+        });
+};
+
+function resetToGuest() {
+    loggedInAs = 'guest';
+    loginID = 1;
+    console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('LOGOUT', 55)) + '\n');
+    console.log('  You are now logged out.');
+    initialInquiry();
 };
 
 function doExit() {
@@ -318,6 +326,8 @@ function addDepartment() {
 };
 
 function createAccount() {
+    // in future, this function should check to see if
+    // the chosen username already exists
     console.log('\n');
     let theQuestions = [
         {
@@ -348,7 +358,7 @@ function createAccount() {
             name: 'email_address',
             type: 'input',
             message: 'Please enter email address:',
-            validate: checkIfValidText
+            validate: checkIfEmailAddress
         }
     ]
     if (loggedInAs === 'administrator') {
@@ -375,8 +385,11 @@ function createAccount() {
                 if (err) { throw err };
                 connection.query(`SELECT account_id FROM accounts WHERE ?`, { user_name: answer.user_name }, function (err, data) {
                     if (err) { throw err };
-                    if (loggedInAs != 'administrator') { // if an administrator is creating an account
-                        loginID = data[0].account_id;    // we don't want to switch out of adminstrator
+                    if (loggedInAs != 'administrator') {
+                        // if an administrator is creating an account
+                        // we don't want to switch out of adminstrator
+                        // otherwise, we want to log in to our new account
+                        loginID = data[0].account_id;
                         loggedInAs = accountType;
                     };
                     console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('YOUR ACCOUNT HAS BEEN CREATED', 55)) + '\n');
@@ -395,12 +408,15 @@ function browseProducts(option) {
     let theQuery = `
     SELECT departments.department_name, products.product_name, products.price, products.stock_quantity
     FROM products
-    LEFT JOIN departments ON products.department_id=departments.department_id;`;
+    LEFT JOIN departments ON products.department_id=departments.department_id
+    ORDER BY departments.department_name asc;`;
     if (option === 'low inventory') {
         theQuery = `
     SELECT departments.department_name, products.product_name, products.price, products.stock_quantity
-    FROM products WHERE stock_quantity<=10
-    LEFT JOIN departments ON products.department_id=departments.department_id;`;
+    FROM products
+    LEFT JOIN departments ON products.department_id=departments.department_id
+    WHERE products.stock_quantity<=10
+    ORDER BY departments.department_name asc;`;
     };
     connection.query(theQuery, function (err, data) {
         if (err) { throw err };
@@ -441,6 +457,10 @@ function selectItemFromList(theList) {
     FROM products
     LEFT JOIN departments ON products.department_id=departments.department_id
     WHERE ?;`;
+            // in future, we would select by product_id. I did
+            // not want to display product_id to the user in the
+            // browse window and implementing search by id without
+            // displaying id would require a bit more work.
             readData(queryPart1, { product_name: theItemToView }, viewItem);
         };
     });
@@ -470,7 +490,7 @@ function viewItem(data) {
                 theChoices = ['Adjust Inventory Quantity', 'Back to Browse Inventory'];
                 break;
             default:
-            // code block
+                theChoices = ['Add to Cart', 'View Cart/Checkout', 'Back to Browse Inventory'];
         }
         inquirer.prompt([{
             name: 'initial',
@@ -505,7 +525,9 @@ function viewItem(data) {
                         readData(queryPart1, { item_id: theProductID }, adjustInventory);
                         break;
                     default:
-                    // code block
+                        queryPart1 = `SELECT user_cart FROM accounts WHERE ?`;
+                        queryPart2 = { account_id: loginID };
+                        readData(queryPart1, queryPart2, viewCart);
                 }
             };
         });
@@ -515,7 +537,7 @@ function viewItem(data) {
 function readData(queryPart1, queryPart2, callback, variable1, variable2) {
     connection.query(queryPart1, queryPart2, function (err, data) {
         if (err) { throw err };
-        if (callback != undefined) {
+        if (typeof callback == 'function') {
             callback(data, variable1, variable2);
         } else {
             return data;
@@ -524,6 +546,9 @@ function readData(queryPart1, queryPart2, callback, variable1, variable2) {
 };
 
 function addToCart(itemID, currentQty, currentSold) {
+    // in future we would differentiate things put in
+    // the cart from things actually purchased. For now,
+    // we just call it "sold" when it goes in the cart.
     inquirer.prompt([
         {
             name: 'howMany',
@@ -633,7 +658,8 @@ function viewCart(data) {
                 theQtys.push(element.split(',')[1]);
             };
         });
-        let queryPart1 = `SELECT product_name, price FROM products WHERE item_id IN (' + theIDs.join(',') + ')`;
+        let queryPart2 = theIDs.join(',');
+        let queryPart1 = `SELECT product_name, price FROM products WHERE item_id IN (${queryPart2})`;
         connection.query(queryPart1, {}, function (err, data) {
             if (err) { throw err };
             let i = 0;
@@ -662,6 +688,9 @@ function viewCart(data) {
                         choices: ['Submit Order', 'Continue Shopping']
                     }]).then((answer) => {
                         if (answer.checkout === 'Submit Order') {
+                            cleanUp();
+                            // in future we could add order tracking, but
+                            // for now we just clear the items out of the cart
                             console.log('\n\n  ' + chalk.black.bold.bgWhiteBright(strpad.right('THANK YOU!', 55)) + '\n');
                             console.log('  Thank you for your order!');
                             console.log('\n  Your order is being processed. You will receive a');
@@ -746,22 +775,35 @@ function adjustInventory(data) {
 
 function checkIfValidNum(answer) {
     if (Number.isNaN(parseFloat(answer))) {
-        console.log('\n  This must be a number only, without a dollar sign.');
+        console.log(chalk.yellowBright('\n  This must be a number only, without a dollar sign.'));
     };
     return (answer !== '' && !Number.isNaN(parseFloat(answer)));
 };
 
 function checkIfValidIntOver0(answer) {
     if (Number.isNaN(parseInt(answer)) || !answer > 0) {
-        console.log('\n  This must be a number greater than zero.');
+        console.log(chalk.yellowBright('\n  This must be a number greater than zero.'));
     };
     return (answer !== '' && !Number.isNaN(parseInt(answer)) && answer > 0);
 };
 
 function checkIfValidText(answer) {
-    if (answer == '') {
-        console.log('\n  This must not be left blank.');
+    if (answer.trim() == '') {
+        console.log(chalk.yellowBright('\n  This must not be left blank.'));
     };
-    return (answer !== '');
+    return (!answer.trim() == '');
 };
 
+function checkIfEmailAddress(answer) {
+    // in future this validation function could be
+    // made more thorough
+    if (answer.trim() == '') {
+        console.log(chalk.yellowBright('\n  This must not be left blank.'));
+    } else {
+        if (!answer.includes('@') || !answer.includes('.')) {
+            console.log(chalk.yellowBright('\n  Please enter a valid email address.'));
+        } else {
+            return true;
+        };
+    };
+};
