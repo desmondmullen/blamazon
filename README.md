@@ -22,9 +22,9 @@ In addition to the basic functions of... copy copy copy, this app does the follo
 ![guest: add to cart](screenshots/04-guest-add-two-of-item-to-cart.png)
 05. `View Cart/Checkout` shows the user's cart:
 ![guest: view cart](screenshots/05-guest-view-cart.png)
-06. `Checkout` them prompts user to Submit Order or Continue Shopping:
+06. `Checkout` then prompts user to Submit Order or Continue Shopping:
 ![guest: checkout](screenshots/06-guest-checkout.png)
-07. `Create Account` creates a user account. Shopping carts persist in user accounts whereas the guest cart is always cleared on Exit:
+07. `Create Account` creates a user account. Shopping carts persist in user accounts whereas the guest cart is always cleared on Exit. When a guest creates an account, any items they had in their (guest) cart is transferred into their new user cart:
 ![create user account](screenshots/07-cart-now-empty-create-user-account.png)
 08. `Login` as manager. Login allows users, managers, and administrators alike to log in to their accounts with privilege-appropriate access:
 ![login as manager](screenshots/08-login-as-manager.png)
