@@ -5,7 +5,7 @@ USE blamazonDB;
 
 CREATE TABLE accounts
 (
-account_id integer not null
+    account_id integer not null
     auto_increment,
 user_name varchar
     (50) not null,
@@ -27,50 +27,50 @@ primary key
     (account_id)
 );
 
-CREATE TABLE account_types
-(
-account_type_id integer not null
-    auto_increment,
+    CREATE TABLE account_types
+    (
+        account_type_id integer not null
+        auto_increment,
 account_type_name varchar
-    (15) not null,
+        (15) not null,
 account_type_description varchar
-    (50) not null,
+        (50) not null,
 primary key
-    (account_type_id)
+        (account_type_id)
 );
 
-CREATE TABLE departments
-(
-department_id integer not null
-    auto_increment,
+        CREATE TABLE departments
+        (
+            department_id integer not null
+            auto_increment,
 department_name varchar
-    (100) not null,
+            (100) not null,
 overhead_costs decimal
-    (10, 2) not null,
+            (10, 2) not null,
 primary key
-    (department_id)
+            (department_id)
 );
 
-CREATE TABLE products
-(
-item_id integer not null
-    auto_increment,
+            CREATE TABLE products
+            (
+                item_id integer not null
+                auto_increment,
 department_id integer not null,
 product_name varchar
-    (100) not null,                      
+                (100) not null,                      
 product_desc varchar
-    (150) not null,
+                (150) not null,
 price decimal
-    (10, 2) not null,
+                (10, 2) not null,
 stock_quantity int
     not null,
 product_sales decimal
-    (10, 2) not null
+                (10, 2) not null
     default 0,
 cost decimal
-    (10, 2) not null,
+                (10, 2) not null,
 sold int not null
     default 0,
 primary key
-    (item_id)
+                (item_id)
 );
