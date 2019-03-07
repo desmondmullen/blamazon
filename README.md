@@ -13,8 +13,8 @@ In addition to the basic functions of [the assignment](homework_instructions.md)
     * Any items left in user carts are, of course, retained on Exit.
     * Items in user carts persist until user completes Checkout.
 * Real user authentication. Passwords are not presently hashed but real user names and passwords are required and are checked against the database.
-* Login and logout allow multiple users to access the site. This feature is reflected in the real world, but is especially valuable for testing/reviewing the use of this program.
-* The assignment called for separate JavaScript files for user, manager, and adminstrator/supervisor. In my implementation, login and user authentication allow users with any privilege level (user, manager, administrator) to login *from the same prompt* to access their privilege-appropriate account.
+* Login and logout allow multiple users to access the site. Login/logout is commonly found in the real world so there's nothing new there, but implementing them here is especially valuable for testing and reviewing the use of this program.
+* The assignment called for separate JavaScript files for user, manager, and adminstrator/supervisor. In my implementation, login and user authentication allow users with any privilege level (user, manager, administrator) to login *from the same prompt* to access their privilege-appropriate accounts.
 * Administrator/supervisors can create user, manager, or administrator accounts.
 * Guests can create a user account to keep their cart data from session-to-session, and in a future implementation to keep additional info like credit card and contact info.
 * Managers and administrator/supervisors can optionally view the site at any privilege value below their own, allowing access and review of information from those other "points of view".
