@@ -3,7 +3,7 @@
 **Blamazon is an Amazon.com-like storefront demonstrating SQL skills.** I created this for the Coding Boot Camp at UNC-Chapel Hill in March 2019. The assignment called for very basic features which approximated retail business logic for customers, managers, and supervisors. I took the assignment further and created real business logic that could be extended to a true, functioning retail site.
 
 # Features
-In addition to the basic functions of [the assignment](homework_instructions.md), this app does the following:
+In addition to the basic functions of the assignment, this app does the following:
 
 ### ADDITIONAL FEATURES:
 * All item views allow line selection using arrow keys and `[return]`.
